@@ -1,92 +1,105 @@
-import blpapi
 import numpy as np
-import datetime
-from scipy.stats import norm
-import math
-import matplotlib.pyplot as plt
+from dash import Dash, html, dcc, callback, Output, Input
 import plotly.express as px
 import plotly.graph_objects as go
-import pandas as pd
-
-from blackscholes import Black76Call, Black76Put
 from portfolio import Portfolio
+from black_scholes import calculate_call_data, calculate_put_data
 
-def format_data(price, delta, gamma, theta, vega, p_and_l= 0):
+
+def format_plot_data(price, delta, gamma, theta, vega, p_and_l=0):
     # Placeholder for data formatting logic
-    return "${:.2f} | Δ: {:.2f} | Γ: {:.2f} | Θ: {:.2f} | Vega: {:.2f} | P&L: {:.2f}".format(price, delta, gamma, theta, vega, p_and_l)
-
-
-def plot_original_grid():
-    # data = np.array([[-4, -3, -2], [-1, 0, 1], [2, 3, 4]])
-    # fig, ax = plt.subplots()
-    # cax = ax.imshow(data, cmap='RdYlGn', interpolation='nearest')
-    # ax.set_xticks(np.arange(data.shape[1]))
-    # ax.set_yticks(np.arange(data.shape[0]))
-    # ax.set_xticklabels(['Goes Down', 'Stays Same', 'Goes Up'])
-    # ax.set_yticklabels(['Goes Up', 'Stays Same', 'Goes Down'])
-    # plt.colorbar(cax)
-    # plt.xlabel('Market')
-    # plt.ylabel('Volatility')
-    # plt.title('Black Scholes Prediction')
-    # plt.show()
-    return
-
-def calculate_call_data(F, K, T, r, sigma, vol_delta = 0, market_delta = 0):
-    if vol_delta is None or abs(vol_delta) < 0:
-        vol_delta = 0
-    if market_delta is None or abs(market_delta) < 0:
-        market_delta = 0
-    # Convert deltas to percentages
-    vol_delta_as_percent = vol_delta / 100
-
-    F = F + market_delta
-    sigma = sigma + vol_delta_as_percent
-
-    call = Black76Call(F=F, K=K, T=T, r=r, sigma=sigma)
-    call_price = call.price()
-    call_delta = call.delta()
-    call_vega  = call.vega()
-    call_gamma = call.gamma()
-    call_theta = call.theta()
-
-    return call_price, call_delta, call_gamma, call_theta, call_vega
-
-def calculate_put_data(F, K, T, r, sigma, vol_delta = 0, market_delta = 0):
-
-    if vol_delta is None or abs(vol_delta) < 0:
-        vol_delta = 0
-    if market_delta is None or abs(market_delta) < 0:
-        market_delta = 0
-    # Convert deltas to percentages
-    vol_delta_as_percent = vol_delta / 100
-
-    F = F + market_delta
-    sigma = sigma + vol_delta_as_percent
-
-    put = Black76Put(F=F, K=K, T=T, r=r, sigma=sigma)
-    put_price = put.price()
-    put_delta = put.delta()
-    put_gamma = put.gamma()
-    put_theta = put.theta()
-    put_vega = put.vega()
-    return put_price, put_delta, put_gamma, put_theta, put_vega
+    return f"Price: {price:.2f}<br>Delta: {delta:.2f}<br>Gamma: {gamma:.2f}<br>Theta: {theta:.2f}<br>Vega: {vega:.2f}<br>P&L: {p_and_l:.2f}"
 
 
 
-# Example usage
-if __name__ == "__main__":
-    print("Black-Scholes Test")
-    F = 100  # Forward price
-    K = 100  # Strike price
-    T = 1    # Time to maturity in years
-    r = 0.035 # Risk-free interest rate
-    sigma = 0.35  # Volatility
 
-    vol_delta = 5
-    market_delta = 5
-    quantity = 1
+app = Dash()
 
-    option_type = 'call'  # or 'put'
+app.layout = [
+    html.H1(children='Welcome to the Black-Scholes Tool'),
+    html.Div(children='This tool allows you to calculate Black-Scholes option pricing.'),
+
+    html.Label('Adjust Volatility'),
+    dcc.Input(
+        id='vol_delta',
+        type='number',
+        value=5,
+        min=0,
+        #max=100,
+        step=1,
+        style={'margin': '20px'}
+    ),
+
+    html.Label('Adjust Market'),
+    dcc.Input(
+        id='market_delta',
+        type='number',
+        value=5,
+        min=0,
+        #max=100,
+        step=1,
+        style={'margin': '20px'}
+    ),
+    html.Label("Quantity"),
+    dcc.Input(
+        id='quantity',
+        type='number',
+        value=1,
+        min=1,
+        step=1),
+
+    html.Button('Calculate', id='calculate-button', style={'margin': '10px', 'padding': '10px 20px',
+                                                           'backgroundColor': '#4CAF50'}),
+    dcc.RadioItems(options=['put', 'call'], value='call', id='option-type'),
+
+    html.Hr(),
+
+    html.Div(children='Input Parameters for Black-Scholes Calculation:'),
+    html.Div([
+        html.Label('F (Forward Price)', style={'margin': '5px'}),
+        dcc.Input(id='input-F', type='number', placeholder='F (Forward Price)', style={'margin': '5px'}),
+
+        html.Label('K (Strike Price)', style={'margin': '5px'}),
+        dcc.Input(id='input-K', type='number', placeholder='K (Strike Price)', style={'margin': '5px'}),
+
+        html.Label('T (Time to Maturity)', style={'margin': '5px'}),
+        dcc.Input(id='input-T', type='number', placeholder='T (Time to Maturity)', style={'margin': '5px'}),
+
+        html.Label('r (Risk-Free Rate)', style={'margin': '5px'}),
+        dcc.Input(id='input-r', type='number', placeholder='r (Risk-Free Rate)', style={'margin': '5px'}),
+
+        html.Label('σ (Volatility)', style={'margin': '5px'}),
+        dcc.Input(id='input-sigma', type='number', placeholder='σ (Volatility)', style={'margin': '5px'})
+
+    ], style={'display': 'flex', 'flexDirection': 'column'}),  # Flexbox for horizontal layout
+    html.Hr(),
+
+    dcc.Graph(
+        id='heatmap',
+        figure={},
+        style={'height': '80vh', 'width': '100%'}
+    )
+]
+
+
+@callback(
+    Output('heatmap', 'figure'),
+    Input('input-F', 'value'),
+    Input('input-K', 'value'),
+    Input('input-T', 'value'),
+    Input('input-r', 'value'),
+    Input('input-sigma', 'value'),
+    Input('option-type', 'value'),
+    Input('calculate-button', 'n_clicks'),
+    Input('vol_delta', 'value'),
+    Input('market_delta', 'value'),
+    Input('quantity', 'value')
+)
+def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity):
+    # Create a grid of data for plotting
+
+    if (None in [F, K, T, r, sigma]) or n_clicks is None:
+        return go.Figure()
 
     # Calculate same_same (center - no changes)
     original_price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r,
@@ -171,11 +184,23 @@ if __name__ == "__main__":
         [down_up.p_and_l, same_up.p_and_l, up_up.p_and_l]
     ]
 
-    print("Cell Text:")
-    for row in cell_text:
-        print(row)
+    # Create a grid of data
+    fig = go.Figure(data=go.Heatmap(
+        z=p_and_l_data,
+        text=cell_text,
+        hoverinfo='text',
+        texttemplate="%{text}",
+        x=[f'Down ${market_delta}', 'Same', f'Up ${market_delta}'],
+        y=[f'Down {vol_delta}%', 'Same', f'Up {vol_delta}%'],
+        colorscale='RdYlGn'
+    ))
+    # Add axis labels
+    fig.update_layout(
+        xaxis_title="Market",
+        yaxis_title="Volatility"
+    )
+    return fig
 
 
-
-
-
+if __name__ == '__main__':
+    app.run(debug=True)
