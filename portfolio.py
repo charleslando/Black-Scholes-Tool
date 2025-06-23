@@ -1,7 +1,7 @@
 #from dash_app import format_plot_data
 class Portfolio:
-    def __init__(self, price, delta, gamma, theta, vega, quantity):
-        self.price = price
+    def __init__(self, Premium, delta, gamma, theta, vega, quantity):
+        self.premium = Premium
         self.delta = delta
         self.gamma = gamma
         self.theta = theta
@@ -9,12 +9,10 @@ class Portfolio:
         self.p_and_l = 0
         self.quantity = quantity
 
-    def __repr__(self):
-        return f"Portfolio(price={self.price}, delta={self.delta}, gamma={self.gamma}, theta={self.theta}, vega={self.vega}, p_and_l={self.p_and_l}, quantity={self.quantity})"
 
     def to_dict(self):
         return {
-            'price': self.price,
+            'Premium': self.premium,
             'delta': self.delta,
             'gamma': self.gamma,
             'theta': self.theta,
@@ -32,11 +30,11 @@ class Portfolio:
         return json.dumps(self.to_dict())
 
     def to_plotly_format(self):
-        #return format_plot_data(self.price, self.delta, self.gamma, self.theta, self.vega, self.p_and_l)
-        return f"Price: {self.price:.2f}<br>Delta: {self.delta:.2f}<br>Gamma: {self.gamma:.2f}<br>Theta: {self.theta:.2f}<br>Vega: {self.vega:.2f}<br>P&L: {self.p_and_l:.2f}<br>Quantity: {self.quantity}"
+        #return format_plot_data(self.Premium, self.delta, self.gamma, self.theta, self.vega, self.p_and_l)
+        return f"Premium: {self.premium:.2f}<br>Delta: {self.delta:.2f}<br>Gamma: {self.gamma:.2f}<br>Theta: {self.theta:.2f}<br>Vega: {self.vega:.2f}<br>P&L: {self.p_and_l:.2f}<br>Quantity: {self.quantity}"
 
-    def calculate_p_and_l(self, original_price):
-        self.p_and_l = self.price - original_price
+    def calculate_p_and_l(self, original_premium):
+        self.p_and_l = self.premium - original_premium
         return self.p_and_l
 
     def get_attribute(self, attr):
@@ -82,3 +80,7 @@ class Portfolio:
         if isinstance(other, Portfolio):
             return self.to_dict() != other.to_dict()
         return True
+
+    def __str__(self):
+        return f"Portfolio: Premium={self.premium}, Delta={self.delta}, Gamma={self.gamma}, Theta={self.theta}, Vega={self.vega}, P&L={self.p_and_l}, Quantity={self.quantity}"
+
