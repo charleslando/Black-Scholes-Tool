@@ -5,12 +5,45 @@ import plotly.graph_objects as go
 from portfolio import Portfolio
 from black_scholes import calculate_call_data, calculate_put_data
 
+# Constants
+DEFAULT_FORWARD_PRICE = 100
+DEFAULT_STRIKE_PRICE = 100
+DEFAULT_TIME_TO_MATURITY = 1  # in years
+DEFAULT_RISK_FREE_RATE = 0.05  # 5%
+DEFAULT_VOLATILITY = 0.35  # 20%
+DEFAULT_VOL_DELTA = 5
+DEFAULT_MARKET_DELTA = 5
+DEFAULT_QUANTITY = 1
+HEATMAP_HEIGHT = '80vh'
 
-# def format_plot_data(price, delta, gamma, theta, vega, p_and_l=0):
-#     # Placeholder for data formatting logic
-#     return f"Premium: {price:.2f}<br>Delta: {delta:.2f}<br>Gamma: {gamma:.2f}<br>Theta: {theta:.2f}<br>Vega: {vega:.2f}<br>P&L: {p_and_l:.2f}"
+
+def validate_inputs(F, K, T, r, sigma):
+    """Validate Black-Scholes inputs"""
+    if None in [F, K, T, r, sigma]:
+        return False #, "All parameters must be provided"
+    if T <= 0:
+        return False #, "Time to maturity must be positive"
+    if sigma <= 0:
+        return False #, "Volatility must be positive"
+    return True #, ""
 
 
+def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta, market_delta, quantity=1):
+    """
+    Calculate the scenario based on the given parameters.
+    """
+    if option_type == 'call':
+        price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
+                                                               vol_delta=vol_delta,
+                                                               market_delta=market_delta)
+    else:
+        price, delta, gamma, theta, vega = calculate_put_data(F, K, T, r, sigma,
+                                                              vol_delta=vol_delta,
+                                                              market_delta=market_delta)
+    premium = price * quantity
+    portfolio = Portfolio(premium, delta, gamma, theta, vega, quantity)
+    portfolio.calculate_p_and_l(price * quantity)
+    return portfolio
 
 
 app = Dash()
@@ -96,123 +129,187 @@ app.layout = [
     Input('quantity', 'value')
 )
 def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity):
-    # Create a grid of data for plotting
+#def update_graph(*args):
 
-    if (None in [F, K, T, r, sigma]) or n_clicks is None:
+    try:
+        #F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity = args
+        # dev test
+        # Section 1: Input Validation
+        if n_clicks is None or n_clicks == 0:
+            return go.Figure()  # Return an empty figure if no clicks
+
+        # is_valid = validate_inputs(F, K, T, r, sigma)
+        # if not is_valid:
+        #     return go.Figure()  # Return an empty figure if inputs are invalid
+
+        # Section 2: Default Values
+        if n_clicks >= 1 and (F is None and K is None and T is None and r is None and sigma is None):
+            F = DEFAULT_FORWARD_PRICE
+            K = DEFAULT_STRIKE_PRICE
+            T = DEFAULT_TIME_TO_MATURITY
+            r = DEFAULT_RISK_FREE_RATE
+            sigma = DEFAULT_VOLATILITY
+            vol_delta = DEFAULT_VOL_DELTA
+            market_delta = DEFAULT_MARKET_DELTA
+            quantity = DEFAULT_QUANTITY
+
+
+
+        original_portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0, quantity)
+        original_premium = original_portfolio.premium
+
+        scenarios = {}
+
+        # Calculate scenarios
+        for vol_change in (-vol_delta, 0, vol_delta):
+            for market_change in (-market_delta, 0, market_delta):
+                portfolio = calculate_scenario(F, K, T, r, sigma, option_type, vol_change, market_change, quantity)
+                portfolio.calculate_p_and_l(original_premium)
+                scenarios[(vol_change, market_change)] = portfolio
+
+        vol_levels = [-vol_delta, 0, vol_delta]  # Inversed
+        market_levels = [-market_delta, 0, market_delta]
+
+        cell_text = []
+        p_and_l_data = []
+
+        # Create cell text for the heatmap using Portfolio objects
+        for vol_change in vol_levels:
+            row_text = []
+            row_data = []
+            for market_change in market_levels:
+                portfolio = scenarios[(vol_change, market_change)]
+                row_text.append(portfolio.to_plotly_format())
+                row_data.append(portfolio.p_and_l)
+            cell_text.append(row_text)
+            p_and_l_data.append(row_data)
+
+        # Create a grid of data for the heatmap
+        # p_and_l_data = np.array([
+        #     [scenarios[(-vol_delta, -market_delta)], scenarios[(-vol_delta, 0)], scenarios[(-vol_delta, market_delta)]],
+        #     [scenarios[(0, -market_delta)], scenarios[(0, 0)], scenarios[(0, market_delta)]],
+        #     [scenarios[(vol_delta, -market_delta)], scenarios[(vol_delta, 0)], scenarios[(vol_delta, market_delta)]]
+        # ])
+        # cell_text = np.array([
+        #     [scenarios[(-vol_delta, -market_delta)], scenarios[(-vol_delta, 0)], scenarios[(-vol_delta, market_delta)]],
+        #     [scenarios[(0, -market_delta)], scenarios[(0, 0)], scenarios[(0, market_delta)]],
+        #     [scenarios[(vol_delta, -market_delta)], scenarios[(vol_delta, 0)], scenarios[(vol_delta, market_delta)]]
+        # ])
+        #
+        #
+        #
+        #
+        #
+        # # Calculate same_same (center - no changes)
+        # # same_same = Portfolio(original_premium, delta, gamma, theta, vega, quantity)
+        # # same_same.calculate_p_and_l(original_premium)
+        #
+        # # Market up, vol same (center right)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
+        #                                                        market_delta=market_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, market_delta=market_delta)
+        # premium = price * quantity
+        # up_same = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # up_same.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Market down, vol same (center left)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
+        #                                                        market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, market_delta=-market_delta)
+        # premium = price * quantity
+        # down_same = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # down_same.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Market up, vol up (top right)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta,
+        #                                                        market_delta=market_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
+        # premium = price * quantity
+        # up_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # up_up.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Market down, vol down (bottom left)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=-vol_delta,
+        #                                                        market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, vol_delta=-vol_delta, market_delta=-market_delta)
+        # premium = price * quantity
+        # down_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # down_down.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Market down, vol up (top left)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta,
+        #                                                        market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, vol_delta=vol_delta, market_delta=-market_delta)
+        # premium = price * quantity
+        # down_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # down_up.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Market up, vol down (bottom right)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=-vol_delta,
+        #                                                        market_delta=market_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, vol_delta=-vol_delta, market_delta=market_delta)
+        # premium = price * quantity
+        # up_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # up_down.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Market same, vol up (top center)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
+        #                                                        vol_delta=vol_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, vol_delta=vol_delta)
+        # premium = price * quantity
+        # same_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # same_up.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Market same, vol down (bottom center)
+        # price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
+        #                                                        vol_delta=-vol_delta) if option_type == 'call' else calculate_put_data(
+        #     F, K, T, r, sigma, vol_delta=-vol_delta)
+        # premium = price * quantity
+        # same_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
+        # same_down.calculate_p_and_l(original_premium)
+        #
+        #
+        # # Create (inverted) cell text for the heatmap using Portfolio  objects
+        # cell_text = [
+        #     [down_down.to_plotly_format(), same_down.to_plotly_format(), up_down.to_plotly_format()],
+        #     [down_same.to_plotly_format(), same_same.to_plotly_format(), up_same.to_plotly_format()],
+        #     [down_up.to_plotly_format(), same_up.to_plotly_format(), up_up.to_plotly_format()]
+        # ]
+        # p_and_l_data = [
+        #     [down_down.p_and_l, same_down.p_and_l, up_down.p_and_l],
+        #     [down_same.p_and_l, same_same.p_and_l, up_same.p_and_l],
+        #     [down_up.p_and_l, same_up.p_and_l, up_up.p_and_l]
+        # ]
+
+        # Create a grid of data
+        fig = go.Figure(data=go.Heatmap(
+            z=p_and_l_data,
+            text=cell_text,
+            hoverinfo='text',
+            texttemplate="%{text}",
+            x=[f'Down ${market_delta}', 'Same', f'Up ${market_delta}'],
+            y=[f'Down {vol_delta}%', 'Same', f'Up {vol_delta}%'],
+            colorscale='RdYlGn'
+        ))
+        # Add axis labels
+        fig.update_layout(
+            xaxis=dict(fixedrange=True),
+            yaxis=dict(fixedrange=True),
+            xaxis_title="Market",
+            yaxis_title="Volatility"
+
+        )
+        return fig
+
+    except Exception as e:
         return go.Figure()
-
-    # Calculate same_same (center - no changes)
-    original_price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r,
-                                                                    sigma) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma)
-    original_premium = original_price * quantity
-    same_same = Portfolio(original_premium, delta, gamma, theta, vega, quantity)
-    same_same.calculate_p_and_l(original_premium)
-
-    # Market up, vol same (center right)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-                                                           market_delta=market_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, market_delta=market_delta)
-    premium = price * quantity
-    up_same = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    up_same.calculate_p_and_l(original_premium)
-
-
-    # Market down, vol same (center left)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-                                                           market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, market_delta=-market_delta)
-    premium = price * quantity
-    down_same = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    down_same.calculate_p_and_l(original_premium)
-
-
-    # Market up, vol up (top right)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta,
-                                                           market_delta=market_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
-    premium = price * quantity
-    up_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    up_up.calculate_p_and_l(original_premium)
-
-
-    # Market down, vol down (bottom left)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=-vol_delta,
-                                                           market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, vol_delta=-vol_delta, market_delta=-market_delta)
-    premium = price * quantity
-    down_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    down_down.calculate_p_and_l(original_premium)
-
-
-    # Market down, vol up (top left)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta,
-                                                           market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, vol_delta=vol_delta, market_delta=-market_delta)
-    premium = price * quantity
-    down_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    down_up.calculate_p_and_l(original_premium)
-
-
-    # Market up, vol down (bottom right)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=-vol_delta,
-                                                           market_delta=market_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, vol_delta=-vol_delta, market_delta=market_delta)
-    premium = price * quantity
-    up_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    up_down.calculate_p_and_l(original_premium)
-
-
-    # Market same, vol up (top center)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-                                                           vol_delta=vol_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, vol_delta=vol_delta)
-    premium = price * quantity
-    same_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    same_up.calculate_p_and_l(original_premium)
-
-
-    # Market same, vol down (bottom center)
-    price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-                                                           vol_delta=-vol_delta) if option_type == 'call' else calculate_put_data(
-        F, K, T, r, sigma, vol_delta=-vol_delta)
-    premium = price * quantity
-    same_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
-    same_down.calculate_p_and_l(original_premium)
-
-
-    # Create (inverted) cell text for the heatmap using Portfolio  objects
-    cell_text = [
-        [down_down.to_plotly_format(), same_down.to_plotly_format(), up_down.to_plotly_format()],
-        [down_same.to_plotly_format(), same_same.to_plotly_format(), up_same.to_plotly_format()],
-        [down_up.to_plotly_format(), same_up.to_plotly_format(), up_up.to_plotly_format()]
-    ]
-    p_and_l_data = [
-        [down_down.p_and_l, same_down.p_and_l, up_down.p_and_l],
-        [down_same.p_and_l, same_same.p_and_l, up_same.p_and_l],
-        [down_up.p_and_l, same_up.p_and_l, up_up.p_and_l]
-    ]
-
-    # Create a grid of data
-    fig = go.Figure(data=go.Heatmap(
-        z=p_and_l_data,
-        text=cell_text,
-        hoverinfo='text',
-        texttemplate="%{text}",
-        x=[f'Down ${market_delta}', 'Same', f'Up ${market_delta}'],
-        y=[f'Down {vol_delta}%', 'Same', f'Up {vol_delta}%'],
-        colorscale='RdYlGn'
-    ))
-    # Add axis labels
-    fig.update_layout(
-        xaxis=dict(fixedrange=True),
-        yaxis=dict(fixedrange=True),
-        xaxis_title="Market",
-        yaxis_title="Volatility"
-
-
-    )
-    return fig
 
 
 if __name__ == '__main__':
