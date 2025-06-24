@@ -42,6 +42,9 @@ def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta, market_delta, 
         price, delta, gamma, theta, vega = calculate_put_data(F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
     premium = price * quantity
     delta = delta * quantity
+    gamma = gamma * quantity
+    theta = theta * quantity
+    vega = vega * quantity
     portfolio = Portfolio(price, delta, gamma, theta, vega, premium)
     portfolio.calculate_p_and_l(price * quantity)
     return portfolio
@@ -91,19 +94,50 @@ app.layout = [
     html.Div(children='Input Parameters for Black-Scholes Calculation:'),
     html.Div([
         html.Label('F (Forward Price)', style={'margin': '5px'}),
-        dcc.Input(id='input-F', type='number', value=DEFAULT_FORWARD_PRICE, placeholder='F (Forward Price)', style={'margin': '5px'}),
+        dcc.Input(id='input-F',
+                  type='number',
+                  value=DEFAULT_FORWARD_PRICE,
+                  min=0,
+                  step=1,
+                  placeholder='F (Forward Price)',
+                  style={'margin': '5px'}),
 
         html.Label('K (Strike Price)', style={'margin': '5px'}),
-        dcc.Input(id='input-K', type='number', value=DEFAULT_STRIKE_PRICE, placeholder='K (Strike Price)', style={'margin': '5px'}),
+        dcc.Input(id='input-K',
+                  type='number',
+                  value=DEFAULT_STRIKE_PRICE,
+                  min=0,
+                  step=1,
+                  placeholder='K (Strike Price)',
+                  style={'margin': '5px'}),
 
         html.Label('T (Time to Maturity)', style={'margin': '5px'}),
-        dcc.Input(id='input-T', type='number', value=DEFAULT_TIME_TO_MATURITY, placeholder='T (Time to Maturity)', style={'margin': '5px'}),
+        dcc.Input(id='input-T',
+                  type='number',
+                  value=DEFAULT_TIME_TO_MATURITY,
+                  min=0,
+                  step=0.01,
+                  placeholder='T (Time to Maturity)',
+                  style={'margin': '5px'}),
 
-        html.Label('r (Risk-Free Rate)', style={'margin': '5px'}),
-        dcc.Input(id='input-r', type='number', value=DEFAULT_RISK_FREE_RATE, placeholder='r (Risk-Free Rate)', style={'margin': '5px'}),
+        html.Label('r (Risk-Free Rate)',
+                   style={'margin': '5px'}),
+        dcc.Input(id='input-r',
+                  type='number',
+                  value=DEFAULT_RISK_FREE_RATE,
+                  min=0,
+                  step=0.01,
+                  placeholder='r (Risk-Free Rate)',
+                  style={'margin': '5px'}),
 
-        html.Label('σ (Volatility)', style={'margin': '5px'}),
-        dcc.Input(id='input-sigma', type='number', value=DEFAULT_VOLATILITY, placeholder='σ (Volatility)', style={'margin': '5px'})
+        html.Label('σ (Volatility)',
+                   style={'margin': '5px'}),
+
+        dcc.Input(id='input-sigma',
+                  type='number',
+                  value=DEFAULT_VOLATILITY,
+                  placeholder='σ (Volatility)',
+                  style={'margin': '5px'})
 
     ], style={'display': 'flex', 'flexDirection': 'column'}),  # Flexbox for horizontal layout
     html.Hr(),
