@@ -1,24 +1,46 @@
 #from dash_app import format_plot_data
+# variables = [
+#     "price",
+#     "delta",
+#     "gamma",
+#     "theta",
+#     "vega",
+#     "p_and_l",
+#     "premium"
+# ]
+# printing_variables = [
+#     "Average Price",
+#     "Delta",
+#     "Gamma",
+#     "Theta",
+#     "Vega",
+#     "P&L",
+#     "Total Premium"
+# ]
 class Portfolio:
-    def __init__(self, Premium, delta, gamma, theta, vega, quantity):
-        self.premium = Premium
+
+    def __init__(self, price, delta, gamma, theta, vega, premium):
+        self.price = price
         self.delta = delta
         self.gamma = gamma
         self.theta = theta
         self.vega = vega
+        self.premium = premium
         self.p_and_l = 0
-        self.quantity = quantity
+        self.premium = premium
+        # self.quantity = quantity
 
 
     def to_dict(self):
         return {
-            'Premium': self.premium,
-            'delta': self.delta,
-            'gamma': self.gamma,
-            'theta': self.theta,
-            'vega': self.vega,
-            'p_and_l': self.p_and_l,
-            'quantity': self.quantity
+            'Average Price': self.price,
+            'Delta': self.delta,
+            'Gamma': self.gamma,
+            'Theta': self.theta,
+            'Vega': self.vega,
+            'P&L': self.p_and_l,
+            'Total Premium': self.premium,
+            # 'quantity': self.quantity
         }
 
     def to_dataframe(self):
@@ -31,7 +53,11 @@ class Portfolio:
 
     def to_plotly_format(self):
         #return format_plot_data(self.Premium, self.delta, self.gamma, self.theta, self.vega, self.p_and_l)
-        return f"Premium: {self.premium:.2f}<br>Delta: {self.delta:.2f}<br>Gamma: {self.gamma:.2f}<br>Theta: {self.theta:.2f}<br>Vega: {self.vega:.2f}<br>P&L: {self.p_and_l:.2f}<br>Quantity: {self.quantity}"
+        return f"Average Price: {self.price:.2f}<br>Delta: {self.delta:.2f}<br>Gamma: {self.gamma:.2f}<br>Vega: {self.vega:.2f}<br>Theta: {self.theta:.2f}<br>Total Premium: {self.premium:.2f}<br>P&L: {self.p_and_l:.2f}"
+        # for variable in printing_variables:
+        #     if variable not in self.to_dict():
+        #         raise ValueError(f"Variable '{variable}' not found in Portfolio object.")
+        # return {
 
     def calculate_p_and_l(self, original_premium):
         self.p_and_l = self.premium - original_premium
@@ -82,5 +108,5 @@ class Portfolio:
         return True
 
     def __str__(self):
-        return f"Portfolio: Premium={self.premium}, Delta={self.delta}, Gamma={self.gamma}, Theta={self.theta}, Vega={self.vega}, P&L={self.p_and_l}, Quantity={self.quantity}"
+        return f"Portfolio: Average Price={self.price}, Delta={self.delta}, Gamma={self.gamma}, Theta={self.theta}, Vega={self.vega}, P&L={self.p_and_l}"
 

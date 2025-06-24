@@ -8,13 +8,17 @@ from black_scholes import calculate_call_data, calculate_put_data
 # Constants
 DEFAULT_FORWARD_PRICE = 100
 DEFAULT_STRIKE_PRICE = 100
-DEFAULT_TIME_TO_MATURITY = 1  # in years
-DEFAULT_RISK_FREE_RATE = 0.05  # 5%
-DEFAULT_VOLATILITY = 0.35  # 20%
+DEFAULT_TIME_TO_MATURITY = 1
+DEFAULT_RISK_FREE_RATE = 0.05
+DEFAULT_VOLATILITY = 0.35
 DEFAULT_VOL_DELTA = 5
 DEFAULT_MARKET_DELTA = 5
-DEFAULT_QUANTITY = 1
+DEFAULT_QUANTITY = 1000
 HEATMAP_HEIGHT = '80vh'
+
+
+
+scenarios = {}
 
 
 def validate_inputs(F, K, T, r, sigma):
@@ -33,15 +37,12 @@ def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta, market_delta, 
     Calculate the scenario based on the given parameters.
     """
     if option_type == 'call':
-        price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-                                                               vol_delta=vol_delta,
-                                                               market_delta=market_delta)
+        price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
     else:
-        price, delta, gamma, theta, vega = calculate_put_data(F, K, T, r, sigma,
-                                                              vol_delta=vol_delta,
-                                                              market_delta=market_delta)
+        price, delta, gamma, theta, vega = calculate_put_data(F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
     premium = price * quantity
-    portfolio = Portfolio(premium, delta, gamma, theta, vega, quantity)
+    delta = delta * quantity
+    portfolio = Portfolio(price, delta, gamma, theta, vega, premium)
     portfolio.calculate_p_and_l(price * quantity)
     return portfolio
 
@@ -56,7 +57,7 @@ app.layout = [
     dcc.Input(
         id='vol_delta',
         type='number',
-        value=5,
+        value=DEFAULT_VOL_DELTA,
         min=0,
         #max=100,
         step=1,
@@ -67,17 +68,17 @@ app.layout = [
     dcc.Input(
         id='market_delta',
         type='number',
-        value=5,
+        value=DEFAULT_MARKET_DELTA,
         min=0,
         #max=100,
         step=1,
         style={'margin': '20px'}
     ),
-    html.Label("Quantity"),
+    html.Label("Contracts"),
     dcc.Input(
         id='quantity',
         type='number',
-        value=1,
+        value=1000,
         min=1,
         step=1),
 
@@ -90,19 +91,19 @@ app.layout = [
     html.Div(children='Input Parameters for Black-Scholes Calculation:'),
     html.Div([
         html.Label('F (Forward Price)', style={'margin': '5px'}),
-        dcc.Input(id='input-F', type='number', placeholder='F (Forward Price)', style={'margin': '5px'}),
+        dcc.Input(id='input-F', type='number', value=DEFAULT_FORWARD_PRICE, placeholder='F (Forward Price)', style={'margin': '5px'}),
 
         html.Label('K (Strike Price)', style={'margin': '5px'}),
-        dcc.Input(id='input-K', type='number', placeholder='K (Strike Price)', style={'margin': '5px'}),
+        dcc.Input(id='input-K', type='number', value=DEFAULT_STRIKE_PRICE, placeholder='K (Strike Price)', style={'margin': '5px'}),
 
         html.Label('T (Time to Maturity)', style={'margin': '5px'}),
-        dcc.Input(id='input-T', type='number', placeholder='T (Time to Maturity)', style={'margin': '5px'}),
+        dcc.Input(id='input-T', type='number', value=DEFAULT_TIME_TO_MATURITY, placeholder='T (Time to Maturity)', style={'margin': '5px'}),
 
         html.Label('r (Risk-Free Rate)', style={'margin': '5px'}),
-        dcc.Input(id='input-r', type='number', placeholder='r (Risk-Free Rate)', style={'margin': '5px'}),
+        dcc.Input(id='input-r', type='number', value=DEFAULT_RISK_FREE_RATE, placeholder='r (Risk-Free Rate)', style={'margin': '5px'}),
 
         html.Label('σ (Volatility)', style={'margin': '5px'}),
-        dcc.Input(id='input-sigma', type='number', placeholder='σ (Volatility)', style={'margin': '5px'})
+        dcc.Input(id='input-sigma', type='number', value=DEFAULT_VOLATILITY, placeholder='σ (Volatility)', style={'margin': '5px'})
 
     ], style={'display': 'flex', 'flexDirection': 'column'}),  # Flexbox for horizontal layout
     html.Hr(),
@@ -153,12 +154,10 @@ def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_del
             market_delta = DEFAULT_MARKET_DELTA
             quantity = DEFAULT_QUANTITY
 
-
-
         original_portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0, quantity)
-        original_premium = original_portfolio.premium
+        original_premium = original_portfolio.price * quantity
 
-        scenarios = {}
+
 
         # Calculate scenarios
         for vol_change in (-vol_delta, 0, vol_delta):
@@ -167,7 +166,7 @@ def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_del
                 portfolio.calculate_p_and_l(original_premium)
                 scenarios[(vol_change, market_change)] = portfolio
 
-        vol_levels = [-vol_delta, 0, vol_delta]  # Inversed
+        vol_levels = [-vol_delta, 0, vol_delta]
         market_levels = [-market_delta, 0, market_delta]
 
         cell_text = []
