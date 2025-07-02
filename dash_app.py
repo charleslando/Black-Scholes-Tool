@@ -32,7 +32,7 @@ def validate_inputs(F, K, T, r, sigma):
     return True #, ""
 
 
-def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta, market_delta, quantity=1):
+def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta=0, quantity=1):
     """
     Calculate the scenario based on the given parameters.
     """
@@ -136,6 +136,8 @@ app.layout = [
         dcc.Input(id='input-sigma',
                   type='number',
                   value=DEFAULT_VOLATILITY,
+                  min=0,
+                  step=0.01,
                   placeholder='σ (Volatility)',
                   style={'margin': '5px'})
 
@@ -169,7 +171,6 @@ def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_del
     try:
         #F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity = args
         # dev test
-        # Section 1: Input Validation
         if n_clicks is None or n_clicks == 0:
             return go.Figure()  # Return an empty figure if no clicks
 
@@ -177,16 +178,15 @@ def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_del
         # if not is_valid:
         #     return go.Figure()  # Return an empty figure if inputs are invalid
 
-        # Section 2: Default Values
-        if n_clicks >= 1 and (F is None and K is None and T is None and r is None and sigma is None):
-            F = DEFAULT_FORWARD_PRICE
-            K = DEFAULT_STRIKE_PRICE
-            T = DEFAULT_TIME_TO_MATURITY
-            r = DEFAULT_RISK_FREE_RATE
-            sigma = DEFAULT_VOLATILITY
-            vol_delta = DEFAULT_VOL_DELTA
-            market_delta = DEFAULT_MARKET_DELTA
-            quantity = DEFAULT_QUANTITY
+        # if n_clicks >= 1 and (F is None and K is None and T is None and r is None and sigma is None):
+        #     F = DEFAULT_FORWARD_PRICE
+        #     K = DEFAULT_STRIKE_PRICE
+        #     T = DEFAULT_TIME_TO_MATURITY
+        #     r = DEFAULT_RISK_FREE_RATE
+        #     sigma = DEFAULT_VOLATILITY
+        #     vol_delta = DEFAULT_VOL_DELTA
+        #     market_delta = DEFAULT_MARKET_DELTA
+        #     quantity = DEFAULT_QUANTITY
 
         original_portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0, quantity)
         original_premium = original_portfolio.price * quantity
