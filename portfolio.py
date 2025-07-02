@@ -1,22 +1,3 @@
-#from dash_app import format_plot_data
-# variables = [
-#     "price",
-#     "delta",
-#     "gamma",
-#     "theta",
-#     "vega",
-#     "p_and_l",
-#     "premium"
-# ]
-# printing_variables = [
-#     "Average Price",
-#     "Delta",
-#     "Gamma",
-#     "Theta",
-#     "Vega",
-#     "P&L",
-#     "Total Premium"
-# ]
 class Portfolio:
 
     def __init__(self, price, delta, gamma, theta, vega, premium):
