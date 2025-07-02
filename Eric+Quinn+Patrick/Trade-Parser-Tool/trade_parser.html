@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade String Parser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .parse-btn {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .parse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.3);
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            color: white;
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(237, 137, 54, 0.3);
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(66, 153, 225, 0.3);
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .trade-block {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .trade-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .trade-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .trade-details {
+            padding: 20px;
+        }
+
+        .detail-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 15px;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f7fafc;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .detail-value {
+            color: #2d3748;
+        }
+
+        .party-section {
+            background: #f8fafc;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .party-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.05em;
+        }
+
+        .summary {
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .summary-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #667eea;
+            display: block;
+        }
+
+        .summary-label {
+            color: #4a5568;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .detail-row {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Trade String Parser</h1>
+
+        <div class="input-section">
+            <label for="tradeInput">Paste your trade string here:</label>
+            <textarea id="tradeInput" placeholder="Paste your trade confirmation text here..."></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="parse-btn" onclick="parseTradeString()">Parse Trades</button>
+            <button class="clear-btn" onclick="clearAll()">Clear All</button>
+            <button class="copy-btn" onclick="copyResults()">Copy Results</button>
+        </div>
+
+        <div class="results" id="results">
+            <div class="empty-state">
+                Paste a trade string above and click "Parse Trades" to see the results
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function parseTradeString() {
+            const input = document.getElementById('tradeInput').value.trim();
+            const resultsDiv = document.getElementById('results');
+
+            if (!input) {
+                resultsDiv.innerHTML = '<div class="empty-state">Please paste a trade string first</div>';
+                return;
+            }
+
+            try {
+                const parsed = parseTrades(input);
+                displayResults(parsed);
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="empty-state" style="color: #e53e3e;">Error parsing trades: ${error.message}</div>`;
+            }
+        }
+
+        function parseTrades(input) {
+            const lines = input.split('\n').map(line => line.trim()).filter(line => line);
+            const trades = [];
+            let currentTrade = null;
+            let currentDate = '';
+            let totalLots = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Parse master confirms date
+                if (line.includes('MASTER CONFIRMS:')) {
+                    currentDate = line.replace(/\*\*/g, '').replace('MASTER CONFIRMS:', '').trim();
+                    continue;
+                }
+
+                // Parse lot total
+                if (line.includes('Lot Total:')) {
+                    const lotMatch = line.match(/(\d{1,3}(?:,\d{3})*|\d+)x/);
+                    if (lotMatch) {
+                        totalLots += parseInt(lotMatch[1].replace(/,/g, ''));
+                    }
+                    continue;
+                }
+
+                // Parse trade instrument line
+                if (line.includes('TRADES') && !line.includes('BUYER:') && !line.includes('SELLER:')) {
+                    if (currentTrade) {
+                        trades.push(currentTrade);
+                    }
+
+                    currentTrade = {
+                        date: currentDate,
+                        instrument: line.replace(/\*\*/g, '').trim(),
+                        buyers: [],
+                        sellers: [],
+                        price: extractPrice(line),
+                        quantity: extractQuantity(line),
+                        rawLine: line
+                    };
+                    continue;
+                }
+
+                // Parse buyer/seller lines
+                if (line.includes('BUYER:') || line.includes('SELLER:')) {
+                    if (currentTrade) {
+                        const party = parseParty(line, lines, i);
+                        if (line.includes('BUYER:')) {
+                            currentTrade.buyers.push(party);
+                        } else {
+                            currentTrade.sellers.push(party);
+                        }
+                    }
+                }
+            }
+
+            if (currentTrade) {
+                trades.push(currentTrade);
+            }
+
+            return { trades, totalLots };
+        }
+
+        function extractPrice(line) {
+            const priceMatch = line.match(/TRADES\s+([\d.]+)/);
+            return priceMatch ? parseFloat(priceMatch[1]) : null;
+        }
+
+        function extractQuantity(line) {
+            const qtyMatch = line.match(/\((\d+(?:,\d+)*|\d+)x\)/);
+            return qtyMatch ? parseInt(qtyMatch[1].replace(/,/g, '')) : null;
+        }
+
+        function parseParty(line, lines, startIndex) {
+            const party = {
+                type: line.includes('BUYER:') ? 'BUYER' : 'SELLER',
+                name: '',
+                quantity: 0,
+                details: [],
+                clearing: '',
+                initiated: ''
+            };
+
+            // Extract party name and quantity from the main line
+            const cleanLine = line.replace(/\*\*/g, '').replace(/(BUYER:|SELLER:)/, '').trim();
+            const parts = cleanLine.split(/\s+/);
+
+            // Find quantity (look for pattern like "100x" or "50x")
+            let qtyFound = false;
+            for (let i = 0; i < parts.length; i++) {
+                if (parts[i].includes('x') && !qtyFound) {
+                    const qtyMatch = parts[i].match(/(\d+)x/);
+                    if (qtyMatch) {
+                        party.quantity = parseInt(qtyMatch[1]);
+                        party.name = parts.slice(0, i).join(' ');
+                        qtyFound = true;
+                        break;
+                    }
+                }
+            }
+
+            // Check for initiated chat
+            if (line.includes('initiated')) {
+                const initiatedMatch = line.match(/initiated\s+(\w+\s+\w+)/);
+                if (initiatedMatch) {
+                    party.initiated = initiatedMatch[1];
+                }
+            }
+
+            // Look for confirmation details in subsequent lines
+            for (let i = startIndex + 1; i < lines.length; i++) {
+                const nextLine = lines[i];
+
+                if (nextLine.includes('BUYER:') || nextLine.includes('SELLER:') || nextLine.includes('TRADES')) {
+                    break;
+                }
+
+                if (nextLine.includes('To Confirm:')) {
+                    party.clearing = nextLine.replace('To Confirm:', '').trim();
+                    continue;
+                }
+
+                if (nextLine.includes('Buys') || nextLine.includes('Sells')) {
+                    party.details.push(nextLine.trim());
+                }
+            }
+
+            return party;
+        }
+
+        function displayResults(parsed) {
+            const resultsDiv = document.getElementById('results');
+
+            let html = `
+                <div class="summary">
+                    <h3>Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="summary-number">${parsed.trades.length}</span>
+                            <div class="summary-label">Total Trades</div>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-number">${parsed.totalLots.toLocaleString()}</span>
+                            <div class="summary-label">Total Lots</div>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-number">${getTotalParties(parsed.trades)}</span>
+                            <div class="summary-label">Total Parties</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            parsed.trades.forEach((trade, index) => {
+                html += `
+                    <div class="trade-block">
+                        <div class="trade-header">
+                            Trade ${index + 1}: ${trade.instrument}
+                        </div>
+                        <div class="trade-details">
+                            <div class="detail-row">
+                                <div class="detail-label">Date:</div>
+                                <div class="detail-value">${trade.date || 'Not specified'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Price:</div>
+                                <div class="detail-value">${trade.price || 'Not specified'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Quantity:</div>
+                                <div class="detail-value">${trade.quantity ? trade.quantity.toLocaleString() + 'x' : 'Not specified'}</div>
+                            </div>
+
+                            ${trade.buyers.map(buyer => `
+                                <div class="party-section">
+                                    <div class="party-title">BUYER: ${buyer.name} (${buyer.quantity}x)</div>
+                                    <div class="detail-row">
+                                        <div class="detail-label">Clearing:</div>
+                                        <div class="detail-value">${buyer.clearing || 'Not specified'}</div>
+                                    </div>
+                                    ${buyer.initiated ? `
+                                        <div class="detail-row">
+                                            <div class="detail-label">Initiated:</div>
+                                            <div class="detail-value">${buyer.initiated}</div>
+                                        </div>
+                                    ` : ''}
+                                    ${buyer.details.length > 0 ? `
+                                        <div class="detail-row">
+                                            <div class="detail-label">Actions:</div>
+                                            <div class="detail-value">
+                                                ${buyer.details.map(detail => `<div>${detail}</div>`).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+
+                            ${trade.sellers.map(seller => `
+                                <div class="party-section">
+                                    <div class="party-title">SELLER: ${seller.name} (${seller.quantity}x)</div>
+                                    <div class="detail-row">
+                                        <div class="detail-label">Clearing:</div>
+                                        <div class="detail-value">${seller.clearing || 'Not specified'}</div>
+                                    </div>
+                                    ${seller.initiated ? `
+                                        <div class="detail-row">
+                                            <div class="detail-label">Initiated:</div>
+                                            <div class="detail-value">${seller.initiated}</div>
+                                        </div>
+                                    ` : ''}
+                                    ${seller.details.length > 0 ? `
+                                        <div class="detail-row">
+                                            <div class="detail-label">Actions:</div>
+                                            <div class="detail-value">
+                                                ${seller.details.map(detail => `<div>${detail}</div>`).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function getTotalParties(trades) {
+            let total = 0;
+            trades.forEach(trade => {
+                total += trade.buyers.length + trade.sellers.length;
+            });
+            return total;
+        }
+
+        function clearAll() {
+            document.getElementById('tradeInput').value = '';
+            document.getElementById('results').innerHTML = '<div class="empty-state">Paste a trade string above and click "Parse Trades" to see the results</div>';
+        }
+
+        function copyResults() {
+            const resultsDiv = document.getElementById('results');
+            const text = resultsDiv.innerText;
+
+            if (text.includes('Paste a trade string')) {
+                alert('No results to copy. Please parse some trades first.');
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = 'linear-gradient(135deg, #48bb78, #38a169)';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = 'linear-gradient(135deg, #4299e1, #3182ce)';
+                }, 2000);
+            }).catch(() => {
+                alert('Failed to copy to clipboard. Please select and copy manually.');
+            });
+        }
+
+        // Auto-resize textarea
+        document.getElementById('tradeInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.max(300, this.scrollHeight) + 'px';
+        });
+    </script>
+</body>
+</html>
