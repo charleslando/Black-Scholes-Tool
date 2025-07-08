@@ -23,14 +23,13 @@ month_codes = {
 
 commodity_codes = {
     'CL': 'WTI Crude Oil (Nymex)',
-    'B' : 'Brent Crude Oil (ICE)',
     'CO': 'Brent Crude Oil (ICE)',
     'NG': 'Natural Gas (Nymex)',
     'XB': 'RBOB Gasoline (Nymex)',
     'QS': 'Low Sulfur Gas Oil (ICE Europe)'
 }
 def get_days_to_maturity(expiry):
-    expiry_df = pd.read_csv('WTI_Expiries.csv', index_col=0)
+    expiry_df = pd.read_csv('Brent_Expiries.csv', index_col=0)
     expiry_date = expiry_df.at[expiry, 'EXPIRY']
     datetime_object = datetime.strptime(expiry_date, '%m/%d/%y')
     delta = datetime_object - datetime.now()

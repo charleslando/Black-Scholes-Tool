@@ -177,25 +177,25 @@ app.layout = [
         style={'height': HEATMAP_HEIGHT, 'width': '100%'}
     )
 ]
-@callback(
-    Output('input-T', 'value'),
-    Output('input-sigma', 'value'),
-    Output('input-commodity', 'value'),
-    Output('input-expiration', 'value'),
-    Input('input-structure', 'value'),
-    Input('option-type', 'value'),
-    Input('input-F', 'value'),
-    Input('input-K', 'value'),
-    Input('input-r', 'value')
-)
+# @callback(
+#     Output('input-T', 'value'),
+#     Output('input-sigma', 'value'),
+#     Output('input-commodity', 'value'),
+#     Output('input-expiration', 'value'),
+#     Input('input-structure', 'value'),
+#     Input('option-type', 'value'),
+#     Input('input-F', 'value'),
+#     Input('input-K', 'value'),
+#     Input('input-r', 'value')
+# )
 def parse_struct(structure, option_type, F, K, r):
-    if(len(structure) != 4):
-        if(structure[0] != 'B' and len(structure) != 3):
-            return DEFAULT_TIME_TO_MATURITY, DEFAULT_VOLATILITY, '', '',
+    #if(len(structure) != 4):
+        #if(structure[0] != 'B' and len(structure) != 3):
+        #    return DEFAULT_TIME_TO_MATURITY, DEFAULT_VOLATILITY, '', '',
 
     commodity, expiration, T = parse_structure(structure)
     volatility_matrix = pd.read_csv('volatility_matrix.csv', index_col=0)
-    #expiry_matrix = pd.read_csv('WTI_Expiries.csv')
+    #expiry_matrix = pd.read_csv('Brent_Expiries.csv')
 
  #   expiry = expiration
 
@@ -229,7 +229,12 @@ def parse_struct(structure, option_type, F, K, r):
     return T, sigma, commodity, expiration
 
 @callback(
+    Output('input-T', 'value'),
+    Output('input-sigma', 'value'),
+    Output('input-commodity', 'value'),
+    Output('input-expiration', 'value'),
     Output('heatmap', 'figure'),
+    Input('input-structure', 'value'),
     Input('input-F', 'value'),
     Input('input-K', 'value'),
     State('input-T', 'value'),
@@ -241,13 +246,15 @@ def parse_struct(structure, option_type, F, K, r):
     Input('market_delta', 'value'),
     Input('quantity', 'value')
 )
-def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity):
+def update_graph(structure, F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity):
     try:
         #F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity = args
         # dev test
-        if n_clicks is None or n_clicks == 0:
-            return go.Figure()  # Return an empty figure if no clicks
+        #if n_clicks is None or n_clicks == 0:
+        #    return go.Figure()  # Return an empty figure if no clicks
 
+
+        T, sigma, commodity, expiration = parse_struct(structure, option_type, F, K, r)
 
         original_portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0, quantity)
         original_premium = original_portfolio.price * quantity
@@ -294,14 +301,29 @@ def update_graph(F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_del
             yaxis_title="Volatility"
 
         )
-        return fig
+        #return fig
+        return T, sigma, commodity, expiration, fig
 
     except Exception as e:
-        return go.Figure()
+        return None, None, None, None, go.Figure()
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Create a grid of data for the heatmap
 # p_and_l_data = np.array([

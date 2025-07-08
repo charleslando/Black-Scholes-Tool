@@ -24,23 +24,24 @@ call_delta_map = {
 #    '0.1DC': 0.001,  # Added for completeness, not in original map
 }
 
-put_delta_map = {
-#    '0.1DP': 0.001,  # Added for completeness, not in original map
-#    '1DP': 0.01,     # Added for completeness, not in original map
-
-    '10DP': 0.10,
-    '15DP': 0.15,
-    '25DP': 0.25,
-    '35DP': 0.35,
-    '50D': 0.5,
-    '35DC': 0.65,
-    '25DC': 0.75,
-    '15DC': 0.85,
-    '10DC': 0.90,
-
-#    '1DC': 0.99,   # Added for completeness, not in original map
-#    '0.1DC': .999,  # Added for completeness, not in original map
-}
+# put_delta_map = {
+# #    '0.1DP': 0.001,  # Added for completeness, not in original map
+# #    '1DP': 0.01,     # Added for completeness, not in original map
+#
+#     '10DP': 0.10,
+#     '15DP': 0.15,
+#     '25DP': 0.25,
+#     '35DP': 0.35,
+#     '50D': 0.5,
+#     '35DC': 0.65,
+#     '25DC': 0.75,
+#     '15DC': 0.85,
+#     '10DC': 0.90,
+#
+# #    '1DC': 0.99,   # Added for completeness, not in original map
+# #    '0.1DC': .999,  # Added for completeness, not in original map
+# }
+put_delta_map = call_delta_map
 
 def get_atm_volatility(vol_matrix, expiration):
     try:
@@ -55,7 +56,7 @@ def get_atm_volatility(vol_matrix, expiration):
         )
 
 def get_days_to_maturity(expiry):
-    expiry_df = pd.read_csv('WTI_Expiries.csv', index_col=0)
+    expiry_df = pd.read_csv('Brent_Expiries.csv', index_col=0)
     expiry_date = expiry_df.at[expiry, 'EXPIRY']
     datetime_object = datetime.strptime(expiry_date, '%m/%d/%y')
     delta = datetime_object - datetime.now()
