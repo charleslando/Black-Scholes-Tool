@@ -20,16 +20,6 @@ DEFAULT_QUANTITY = 1000
 HEATMAP_HEIGHT = '80vh'
 
 scenarios = {}
-# def validate_inputs(F, K, T, r, sigma):
-#     """Validate Black-Scholes inputs"""
-#     if None in [F, K, T, r, sigma]:
-#         return False #, "All parameters must be provided"
-#     if T <= 0:
-#         return False #, "Time to maturity must be positive"
-#     if sigma <= 0:
-#         return False #, "Volatility must be positive"
-#     return True #, ""
-
 def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta=0, quantity=1):
     """
     Calculate the scenario based on the given parameters.
@@ -126,10 +116,8 @@ app.layout = [
                   placeholder='r (Risk-Free Rate)',
                   style={'margin': '5px'}),
 
-
-
-
     ], style={'display': 'flex', 'flexDirection': 'column'}),  # Flexbox for horizontal layout
+
     html.Hr(),
 
 
@@ -189,42 +177,19 @@ app.layout = [
 #     Input('input-r', 'value')
 # )
 def parse_struct(structure, option_type, F, K, r):
-    #if(len(structure) != 4):
-        #if(structure[0] != 'B' and len(structure) != 3):
-        #    return DEFAULT_TIME_TO_MATURITY, DEFAULT_VOLATILITY, '', '',
 
     commodity, expiration, T = parse_structure(structure)
     volatility_matrix = pd.read_csv('volatility_matrix.csv', index_col=0)
-    #expiry_matrix = pd.read_csv('Brent_Expiries.csv')
 
- #   expiry = expiration
-
-    # F = 100
-    # K = 160
-    # T = get_days_to_maturity(expiry) / 365.0  # Convert days to years
-    # r = 0.05
-    #option_type = 'call'
-    #month = expiry[:-3]
     sigma = get_atm_volatility(volatility_matrix, expiration)  # Volatility from the matrix
     sigma = sigma / 100  # Convert percentage to decimal
     portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0)
-
-    #print(f"Portfolio Details:\n{portfolio.__str__()}")
-
     delta = portfolio.delta
-
-    # col_idx = find_closest_col_idx(vol_matrix, delta, option_type)
-
-    #print(f"Delta: {delta}\n")
-
     new_vol = interpolate_vol(volatility_matrix, expiration, delta, option_type)
     new_vol = new_vol / 100  # Convert percentage to decimal
-    #print(f"Interpolated Volatility: {new_vol}\n")
 
     # Now we can use the interpolated volatility to create a new portfolio
     #portfolio2 = calculate_scenario(F, K, T, r, new_vol, option_type, 0, 0)
-    #print(f"Portfolio Details with adjusted volatility:\n{portfolio2.__str__()}\n")
-
     sigma = new_vol
     return T, sigma, commodity, expiration
 
@@ -248,11 +213,6 @@ def parse_struct(structure, option_type, F, K, r):
 )
 def update_graph(structure, F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity):
     try:
-        #F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity = args
-        # dev test
-        #if n_clicks is None or n_clicks == 0:
-        #    return go.Figure()  # Return an empty figure if no clicks
-
 
         T, sigma, commodity, expiration = parse_struct(structure, option_type, F, K, r)
 
@@ -309,122 +269,4 @@ def update_graph(structure, F, K, T, r, sigma, option_type, n_clicks, vol_delta,
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Create a grid of data for the heatmap
-# p_and_l_data = np.array([
-#     [scenarios[(-vol_delta, -market_delta)], scenarios[(-vol_delta, 0)], scenarios[(-vol_delta, market_delta)]],
-#     [scenarios[(0, -market_delta)], scenarios[(0, 0)], scenarios[(0, market_delta)]],
-#     [scenarios[(vol_delta, -market_delta)], scenarios[(vol_delta, 0)], scenarios[(vol_delta, market_delta)]]
-# ])
-# cell_text = np.array([
-#     [scenarios[(-vol_delta, -market_delta)], scenarios[(-vol_delta, 0)], scenarios[(-vol_delta, market_delta)]],
-#     [scenarios[(0, -market_delta)], scenarios[(0, 0)], scenarios[(0, market_delta)]],
-#     [scenarios[(vol_delta, -market_delta)], scenarios[(vol_delta, 0)], scenarios[(vol_delta, market_delta)]]
-# ])
-#
-#
-#
-#
-#
-# # Calculate same_same (center - no changes)
-# # same_same = Portfolio(original_premium, delta, gamma, theta, vega, quantity)
-# # same_same.calculate_p_and_l(original_premium)
-#
-# # Market up, vol same (center right)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-#                                                        market_delta=market_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, market_delta=market_delta)
-# premium = price * quantity
-# up_same = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# up_same.calculate_p_and_l(original_premium)
-#
-#
-# # Market down, vol same (center left)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-#                                                        market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, market_delta=-market_delta)
-# premium = price * quantity
-# down_same = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# down_same.calculate_p_and_l(original_premium)
-#
-#
-# # Market up, vol up (top right)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta,
-#                                                        market_delta=market_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
-# premium = price * quantity
-# up_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# up_up.calculate_p_and_l(original_premium)
-#
-#
-# # Market down, vol down (bottom left)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=-vol_delta,
-#                                                        market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, vol_delta=-vol_delta, market_delta=-market_delta)
-# premium = price * quantity
-# down_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# down_down.calculate_p_and_l(original_premium)
-#
-#
-# # Market down, vol up (top left)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta,
-#                                                        market_delta=-market_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, vol_delta=vol_delta, market_delta=-market_delta)
-# premium = price * quantity
-# down_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# down_up.calculate_p_and_l(original_premium)
-#
-#
-# # Market up, vol down (bottom right)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=-vol_delta,
-#                                                        market_delta=market_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, vol_delta=-vol_delta, market_delta=market_delta)
-# premium = price * quantity
-# up_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# up_down.calculate_p_and_l(original_premium)
-#
-#
-# # Market same, vol up (top center)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-#                                                        vol_delta=vol_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, vol_delta=vol_delta)
-# premium = price * quantity
-# same_up = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# same_up.calculate_p_and_l(original_premium)
-#
-#
-# # Market same, vol down (bottom center)
-# price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma,
-#                                                        vol_delta=-vol_delta) if option_type == 'call' else calculate_put_data(
-#     F, K, T, r, sigma, vol_delta=-vol_delta)
-# premium = price * quantity
-# same_down = Portfolio(premium, delta, gamma, theta, vega, quantity)
-# same_down.calculate_p_and_l(original_premium)
-#
-#
-# # Create (inverted) cell text for the heatmap using Portfolio  objects
-# cell_text = [
-#     [down_down.to_plotly_format(), same_down.to_plotly_format(), up_down.to_plotly_format()],
-#     [down_same.to_plotly_format(), same_same.to_plotly_format(), up_same.to_plotly_format()],
-#     [down_up.to_plotly_format(), same_up.to_plotly_format(), up_up.to_plotly_format()]
-# ]
-# p_and_l_data = [
-#     [down_down.p_and_l, same_down.p_and_l, up_down.p_and_l],
-#     [down_same.p_and_l, same_same.p_and_l, up_same.p_and_l],
-#     [down_up.p_and_l, same_up.p_and_l, up_up.p_and_l]
-# ]
+    app.run(debug=True)

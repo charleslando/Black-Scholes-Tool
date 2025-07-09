@@ -1,33 +1,21 @@
 import numpy as np
 import pandas as pd
-#from dash_app import calculate_scenario
 from datetime import datetime
-
 
 vol_matrix = pd.read_csv('volatility_matrix.csv', index_col=0)
 
 call_delta_map = {
-#    '0.1DP': 0.999,  # Added for completeness, not in original map
-#    '1DP': 0.99, # Added for completeness, not in original map
-
     '10DP': 0.90,
     '15DP': 0.85,
     '25DP': 0.75,
     '35DP': 0.65,
-    '50D': 0.5,
+    '50D':  0.5,
     '35DC': 0.35,
     '25DC': 0.25,
     '15DC': 0.15,
     '10DC': 0.10,
-
-#    '1DC': 0.01,    # Added for completeness, not in original map
-#    '0.1DC': 0.001,  # Added for completeness, not in original map
 }
-
 # put_delta_map = {
-# #    '0.1DP': 0.001,  # Added for completeness, not in original map
-# #    '1DP': 0.01,     # Added for completeness, not in original map
-#
 #     '10DP': 0.10,
 #     '15DP': 0.15,
 #     '25DP': 0.25,
@@ -37,12 +25,8 @@ call_delta_map = {
 #     '25DC': 0.75,
 #     '15DC': 0.85,
 #     '10DC': 0.90,
-#
-# #    '1DC': 0.99,   # Added for completeness, not in original map
-# #    '0.1DC': .999,  # Added for completeness, not in original map
 # }
 put_delta_map = call_delta_map
-
 def get_atm_volatility(vol_matrix, expiration):
     try:
         # label‐based lookup—super concise
@@ -62,40 +46,19 @@ def get_days_to_maturity(expiry):
     delta = datetime_object - datetime.now()
     return delta.days
 
-
 def interpolate_vol(df, expiration, delta, option_type):
     # Insert out of bounds deltas by adding weighted values
+    if(option_type != 'call' and delta < 1):
+        delta = 0.985 + delta
 
-
-
-    # decay = 0.8
-    # start = 10
-    # weights = [start * (decay ** i) for i in range(len(df))] # Exclude '1DP' and '1DC'
-    #df['Weighting'] = weights
-
-    # ten_dp_vals = df['10DP'].values.tolist()
-    # one_dp_vals = [ten_dp + weight for ten_dp, weight in zip(ten_dp_vals, weights)]
-    # # Add 1DP column at the beginning
-    # vol_matrix.insert(0, '1DP', one_dp_vals)
-    # # Add 0.1DP column at the beginning
-    # point_one_dp_vals = [one_dp + weight * 2 for one_dp, weight in zip(one_dp_vals, weights)]
-    # vol_matrix.insert(0, '0.1DP', point_one_dp_vals)
-    #
-    # ten_dc_vals = df['10DC'].values.tolist()
-    # one_dc_vals = [ten_dc + weight for ten_dc, weight in zip(ten_dc_vals, weights)]
-    # # Add 1DC column at the end
-    # vol_matrix.insert(len(vol_matrix.columns), '1DC', one_dc_vals)
-    # # Add 0.1DC column at the end
-    # point_one_dc_vals = [one_dc + weight * 2 for one_dc, weight in zip(one_dc_vals, weights)]
-    # vol_matrix.insert(len(vol_matrix.columns), '0.1DC', point_one_dc_vals)
 
     x_vals = call_delta_map.values() if option_type.lower() == 'call' else put_delta_map.values()
     y_vals = df.loc[expiration].tolist()
     x_vals = list(x_vals)
 
-
     # get delta prediction based on x and Y
-    poly = np.poly1d(np.polyfit(x_vals, y_vals, deg=3))
+    poly = np.poly1d(np.polyfit(x_vals, y_vals, deg=4))
+
     vol_prediction = poly(delta)
     return vol_prediction
 
@@ -105,46 +68,12 @@ def interpolate_vol(df, expiration, delta, option_type):
 
 
 
-    # # Add 1DC column at the end
-    # vol_matrix['1DC'] = vol_matrix['10DC'] + weighted_val
-
-
-
-    # #Filter relevant data columns
-    # if option_type.lower() == 'call':
-    #    relevant = {k: v for k, v in call_delta_map.items()}
-    # else:
-    #    relevant = {k: v for k, v in put_delta_map.items()}
 
 
 
 
-    # delta_vals = list(relevant.values())
-    # columns = list(relevant.keys())
-
-    # weight_delta = 1
-    # weight = df.at[month, 'Weighted']
-    # if delta < min(delta_vals) or delta > max(delta_vals):
-    #     if(delta < min(delta_vals)):
-    #         #interpolate between 10 and weight_delta
-    #         delta_vals.insert(delta)
 
 
-
-    #
-    # #find the two bracketing deltas
-    # for i in range(len(delta_vals) - 1):
-    #     d1, d2 = delta_vals[i], delta_vals[i + 1]
-    #     if d1 <= delta <= d2 or d2 <= delta <= d1:
-    #         # Interpolate between the two deltas
-    #         col1, col2 = columns[i], columns[i + 1]
-    #         vol1 = df.at[month, col1]
-    #         vol2 = df.at[month, col2]
-    #
-    #         # Linear interpolation
-    #         weight = (delta - d1) / (d2 - d1)
-    #         interpolated_vol = vol1 + weight * (vol2 - vol1)
-    #         return interpolated_vol
 
 
 
@@ -210,6 +139,75 @@ def interpolate_vol(df, expiration, delta, option_type):
 #     # get its integer position
 #     return df.columns.get_loc(closest_label)
 
+
+    # decay = 0.8
+    # start = 10
+    # weights = [start * (decay ** i) for i in range(len(df))] # Exclude '1DP' and '1DC'
+    #df['Weighting'] = weights
+
+    # ten_dp_vals = df['10DP'].values.tolist()
+    # one_dp_vals = [ten_dp + weight for ten_dp, weight in zip(ten_dp_vals, weights)]
+    # # Add 1DP column at the beginning
+    # vol_matrix.insert(0, '1DP', one_dp_vals)
+    # # Add 0.1DP column at the beginning
+    # point_one_dp_vals = [one_dp + weight * 2 for one_dp, weight in zip(one_dp_vals, weights)]
+    # vol_matrix.insert(0, '0.1DP', point_one_dp_vals)
+    #
+    # ten_dc_vals = df['10DC'].values.tolist()
+    # one_dc_vals = [ten_dc + weight for ten_dc, weight in zip(ten_dc_vals, weights)]
+    # # Add 1DC column at the end
+    # vol_matrix.insert(len(vol_matrix.columns), '1DC', one_dc_vals)
+    # # Add 0.1DC column at the end
+    # point_one_dc_vals = [one_dc + weight * 2 for one_dc, weight in zip(one_dc_vals, weights)]
+    # vol_matrix.insert(len(vol_matrix.columns), '0.1DC', point_one_dc_vals)
+
+
+
+
+
+
+
+
+    # # Add 1DC column at the end
+    # vol_matrix['1DC'] = vol_matrix['10DC'] + weighted_val
+
+
+
+    # #Filter relevant data columns
+    # if option_type.lower() == 'call':
+    #    relevant = {k: v for k, v in call_delta_map.items()}
+    # else:
+    #    relevant = {k: v for k, v in put_delta_map.items()}
+
+
+
+
+    # delta_vals = list(relevant.values())
+    # columns = list(relevant.keys())
+
+    # weight_delta = 1
+    # weight = df.at[month, 'Weighted']
+    # if delta < min(delta_vals) or delta > max(delta_vals):
+    #     if(delta < min(delta_vals)):
+    #         #interpolate between 10 and weight_delta
+    #         delta_vals.insert(delta)
+
+
+
+    #
+    # #find the two bracketing deltas
+    # for i in range(len(delta_vals) - 1):
+    #     d1, d2 = delta_vals[i], delta_vals[i + 1]
+    #     if d1 <= delta <= d2 or d2 <= delta <= d1:
+    #         # Interpolate between the two deltas
+    #         col1, col2 = columns[i], columns[i + 1]
+    #         vol1 = df.at[month, col1]
+    #         vol2 = df.at[month, col2]
+    #
+    #         # Linear interpolation
+    #         weight = (delta - d1) / (d2 - d1)
+    #         interpolated_vol = vol1 + weight * (vol2 - vol1)
+    #         return interpolated_vol
 
 
 
