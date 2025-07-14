@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
 from dash import Dash, html, dcc, callback, Output, Input, State
-import plotly.express as px
 import plotly.graph_objects as go
 from portfolio import Portfolio
 from black_scholes import calculate_call_data, calculate_put_data
 from trade_parser import parse_structure
-from vol_solver import interpolate_vol, get_atm_volatility
+from vol_solver import interpolate_vol_from_delta, get_atm_volatility
 
 # Constants
 DEFAULT_FORWARD_PRICE = 100
@@ -179,13 +178,13 @@ app.layout = [
 def parse_struct(structure, option_type, F, K, r):
 
     commodity, expiration, T = parse_structure(structure)
-    volatility_matrix = pd.read_csv('volatility_matrix.csv', index_col=0)
+    volatility_matrix = pd.read_csv('Data/strike_matrix.csv', index_col=0)
 
     sigma = get_atm_volatility(volatility_matrix, expiration)  # Volatility from the matrix
     sigma = sigma / 100  # Convert percentage to decimal
     portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0)
     delta = portfolio.delta
-    new_vol = interpolate_vol(volatility_matrix, expiration, delta, option_type)
+    new_vol = interpolate_vol_from_delta(volatility_matrix, expiration, delta, option_type)
     new_vol = new_vol / 100  # Convert percentage to decimal
 
     # Now we can use the interpolated volatility to create a new portfolio
@@ -202,16 +201,16 @@ def parse_struct(structure, option_type, F, K, r):
     Input('input-structure', 'value'),
     Input('input-F', 'value'),
     Input('input-K', 'value'),
-    State('input-T', 'value'),
+#    State('input-T', 'value'),
     Input('input-r', 'value'),
-    State('input-sigma', 'value'),
+#    State('input-sigma', 'value'),
     Input('option-type', 'value'),
-    Input('calculate-button', 'n_clicks'),
+#    Input('calculate-button', 'n_clicks'),
     Input('vol_delta', 'value'),
     Input('market_delta', 'value'),
     Input('quantity', 'value')
 )
-def update_graph(structure, F, K, T, r, sigma, option_type, n_clicks, vol_delta, market_delta, quantity):
+def update_graph(structure, F, K, r, option_type, vol_delta, market_delta, quantity):
     try:
 
         T, sigma, commodity, expiration = parse_struct(structure, option_type, F, K, r)

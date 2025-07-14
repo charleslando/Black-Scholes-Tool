@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-vol_matrix = pd.read_csv('volatility_matrix.csv', index_col=0)
+vol_matrix = pd.read_csv('Data/strike_matrix.csv', index_col=0)
 
 call_delta_map = {
     '10DP': 0.90,
@@ -40,16 +40,17 @@ def get_atm_volatility(vol_matrix, expiration):
         )
 
 def get_days_to_maturity(expiry):
-    expiry_df = pd.read_csv('Brent_Expiries.csv', index_col=0)
+    expiry_df = pd.read_csv('Data/Brent_Expiries.csv', index_col=0)
     expiry_date = expiry_df.at[expiry, 'EXPIRY']
     datetime_object = datetime.strptime(expiry_date, '%m/%d/%y')
     delta = datetime_object - datetime.now()
     return delta.days
 
-def interpolate_vol(df, expiration, delta, option_type):
+def interpolate_vol_from_delta(df, expiration, delta, option_type):
     # Insert out of bounds deltas by adding weighted values
     if(option_type != 'call' and delta < 1):
-        delta = 0.985 + delta
+        #delta = 0.985 + delta
+        delta = 1 + delta
 
 
     x_vals = call_delta_map.values() if option_type.lower() == 'call' else put_delta_map.values()
@@ -62,6 +63,11 @@ def interpolate_vol(df, expiration, delta, option_type):
     vol_prediction = poly(delta)
     return vol_prediction
 
+def interpolate_vol_from_strike(df, expiration, atm_strike, desired_strike, option_type):
+    diff = desired_strike - atm_strike
+
+
+    return
 
 
 
