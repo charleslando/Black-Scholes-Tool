@@ -75,9 +75,6 @@ def parse_structure(structure):
 
     try:
         commodity = commodity_codes.get(structure[:2])
-        if not commodity:
-            if(structure[0] == 'B'):
-                commodity = commodity_codes.get('B')
         month = month_codes.get(structure[2])
         # Find the longest matching prefix in commodity_codes
         # commodity = None
@@ -100,8 +97,11 @@ def parse_structure(structure):
         expiration = month + '-' + year
         # print(expiration)
         T = get_days_to_maturity(expiration)
+        days_to_expiration = T
         T = T/365.0
-        return commodity, expiration, T
+
+        print(f"Commodity: {commodity}, Expiration: {expiration}, T: {T}, Days to Expiration: {days_to_expiration}")
+        return commodity, T, expiration, days_to_expiration
     except KeyError as e:
         print(f"Error parsing structure '{structure}': {e}")
         return None, None, None

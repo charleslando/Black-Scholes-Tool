@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-vol_matrix = pd.read_csv('Data/strike_matrix.csv', index_col=0)
+vol_matrix = pd.read_csv('Data/delta_strike_matrix.csv', index_col=0)
 
 call_delta_map = {
     '10DP': 0.90,
@@ -26,6 +26,7 @@ call_delta_map = {
 #     '15DC': 0.85,
 #     '10DC': 0.90,
 # }
+
 put_delta_map = call_delta_map
 def get_atm_volatility(vol_matrix, expiration):
     try:
@@ -49,7 +50,6 @@ def get_days_to_maturity(expiry):
 def interpolate_vol_from_delta(df, expiration, delta, option_type):
     # Insert out of bounds deltas by adding weighted values
     if(option_type != 'call' and delta < 1):
-        #delta = 0.985 + delta
         delta = 1 + delta
 
 
@@ -63,11 +63,29 @@ def interpolate_vol_from_delta(df, expiration, delta, option_type):
     vol_prediction = poly(delta)
     return vol_prediction
 
-def interpolate_vol_from_strike(df, expiration, atm_strike, desired_strike, option_type):
-    diff = desired_strike - atm_strike
+def interpolate_vol_from_strike(df, expiration, strike, option_type):
+    x_vals = df.columns.tolist()
+    y_vals = df.loc[expiration].tolist()
 
+    # Convert y_vals to numeric values
+    x_vals = [float(x) for x in x_vals]
+    y_vals = [float(y) for y in y_vals]
 
-    return
+    print(f"DEBUG: X VALS ARE {x_vals}, Y VALS ARE {y_vals}")
+
+    poly = np.poly1d(np.polyfit(x_vals, y_vals, deg=4))
+    # Ensure strike is a float for interpolation
+    if isinstance(strike, str):
+        strike = float(strike)
+    elif isinstance(strike, int):
+        strike = float(strike)
+    elif not isinstance(strike, float):
+        raise TypeError("Strike must be a float, int, or str convertible to float.")
+
+    vol_prediction = poly(strike)
+    print(f"DEBUG: Strike {strike} gives vol prediction {vol_prediction}")
+    return vol_prediction
+
 
 
 
