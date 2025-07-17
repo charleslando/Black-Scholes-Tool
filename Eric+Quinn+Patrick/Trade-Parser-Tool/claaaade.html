@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Header Parser</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-section {
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .parsed-fields {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        .field-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+        .field label {
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .field input {
+            padding: 8px;
+            font-size: 14px;
+        }
+        .output {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 1px solid #e9ecef;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .trade-entry {
+            margin: 10px 0;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .trade-entry h4 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+        }
+        .trade-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Trading Header Parser</h1>
+
+        <div class="input-section">
+            <label for="headerInput">Trade Header Line:</label>
+            <input type="text" id="headerInput" placeholder="e.g., X25 5.00/6.00 1x2 cs LIVE TRADES .0380 (500x)">
+            <button onclick="parseHeader()">Parse Header</button>
+        </div>
+
+        <div id="parsedSection" style="display: none;">
+            <h3>Parsed Fields (Review and Edit):</h3>
+            <div class="parsed-fields">
+                <div class="field-group">
+                    <div class="field">
+                        <label>Contract:</label>
+                        <input type="text" id="contract" placeholder="e.g., X25">
+                    </div>
+                    <div class="field">
+                        <label>Strike 1:</label>
+                        <input type="text" id="strike1" placeholder="e.g., 5.00">
+                    </div>
+                    <div class="field">
+                        <label>Strike 2:</label>
+                        <input type="text" id="strike2" placeholder="e.g., 6.00">
+                    </div>
+                    <div class="field">
+                        <label>Option Type:</label>
+                        <select id="optionType">
+                            <option value="Call">Call</option>
+                            <option value="Put">Put</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Strategy:</label>
+                        <input type="text" id="strategy" placeholder="e.g., 1x2 cs, strangle, put fly">
+                    </div>
+                    <div class="field">
+                        <label>Net Premium:</label>
+                        <input type="text" id="netPremium" placeholder="e.g., .0380">
+                    </div>
+                    <div class="field">
+                        <label>Base Quantity:</label>
+                        <input type="text" id="baseQuantity" placeholder="e.g., 500">
+                    </div>
+                    <div class="field">
+                        <label>Premium 1:</label>
+                        <input type="text" id="premium1" placeholder="e.g., .1680">
+                    </div>
+                    <div class="field">
+                        <label>Premium 2:</label>
+                        <input type="text" id="premium2" placeholder="e.g., .0650">
+                    </div>
+                </div>
+            </div>
+
+            <h3>Trade Entries:</h3>
+            <div id="tradeEntries"></div>
+            <button onclick="addTradeEntry()">Add Trade Entry</button>
+            <button onclick="generateOutput()">Generate Trade Confirmations</button>
+        </div>
+
+        <div id="outputSection" style="display: none;">
+            <h3>Generated Trade Confirmations:</h3>
+            <textarea id="output" class="output" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; min-height: 300px; resize: vertical;"></textarea>
+            <div style="margin-top: 10px;">
+                <button onclick="copyOutput()">Copy to Clipboard</button>
+                <button onclick="saveOutput()" style="background: #28a745;">Save Changes</button>
+                <button onclick="clearOutput()" style="background: #dc3545;">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tradeCounter = 0;
+        let parsedData = {};
+
+        function parseHeader() {
+            const header = document.getElementById('headerInput').value.trim();
+            if (!header) {
+                alert('Please enter a header line');
+                return;
+            }
+
+            try {
+                parsedData = parseTradeHeader(header);
+                populateFields(parsedData);
+                document.getElementById('parsedSection').style.display = 'block';
+                document.getElementById('outputSection').style.display = 'none';
+
+                // Clear existing trade entries and add one default
+                document.getElementById('tradeEntries').innerHTML = '';
+                tradeCounter = 0;
+                addTradeEntry();
+            } catch (error) {
+                alert('Error parsing header: ' + error.message);
+            }
+        }
+
+        function parseTradeHeader(header) {
+            const data = {};
+
+            // Extract contract (first part before space)
+            const contractMatch = header.match(/^([A-Z]\d+)/);
+            data.contract = contractMatch ? contractMatch[1] : '';
+
+            // Extract strikes (numbers with decimal points)
+            const strikePattern = /(\d+\.\d+)/g;
+            const strikes = header.match(strikePattern) || [];
+            data.strike1 = strikes[0] || '';
+            data.strike2 = strikes[1] || '';
+
+            // Extract net premium (decimal after "TRADES")
+            const premiumMatch = header.match(/TRADES\s+([\.\d]+)/);
+            data.netPremium = premiumMatch ? premiumMatch[1] : '';
+
+            // Extract base quantity (number in parentheses with x)
+            const quantityMatch = header.match(/\((\d+)x\)/);
+            data.baseQuantity = quantityMatch ? quantityMatch[1] : '';
+
+            // Determine option type (look for 'c' or 'p' or 'call' or 'put')
+            const lowerHeader = header.toLowerCase();
+            if (lowerHeader.includes('call') || lowerHeader.includes(' c ')) {
+                data.optionType = 'Call';
+            } else if (lowerHeader.includes('put') || lowerHeader.includes(' p ')) {
+                data.optionType = 'Put';
+            } else {
+                data.optionType = 'Call'; // default
+            }
+
+            // Extract strategy description
+            const strategyMatch = header.match(/(\d+x\d+\s+\w+|strangle|put fly|\w+\s+fly)/i);
+            data.strategy = strategyMatch ? strategyMatch[0] : '';
+
+            // Calculate individual premiums based on net premium and strategy
+            if (data.netPremium && data.strategy.includes('1x2')) {
+                // For 1x2 call spread, typical calculation
+                const net = parseFloat(data.netPremium);
+                data.premium1 = (net + 0.1030).toFixed(4); // rough estimate
+                data.premium2 = (0.0650).toFixed(4); // rough estimate
+            }
+
+            return data;
+        }
+
+        function populateFields(data) {
+            document.getElementById('contract').value = data.contract || '';
+            document.getElementById('strike1').value = data.strike1 || '';
+            document.getElementById('strike2').value = data.strike2 || '';
+            document.getElementById('optionType').value = data.optionType || 'Call';
+            document.getElementById('strategy').value = data.strategy || '';
+            document.getElementById('netPremium').value = data.netPremium || '';
+            document.getElementById('baseQuantity').value = data.baseQuantity || '';
+            document.getElementById('premium1').value = data.premium1 || '';
+            document.getElementById('premium2').value = data.premium2 || '';
+        }
+
+        function addTradeEntry() {
+            tradeCounter++;
+            const container = document.getElementById('tradeEntries');
+            const entry = document.createElement('div');
+            entry.className = 'trade-entry';
+            entry.innerHTML = `
+                <h4>Trade Entry ${tradeCounter}</h4>
+                <div class="trade-inputs">
+                    <div>
+                        <label>Trader/Firm:</label>
+                        <input type="text" id="trader_${tradeCounter}" placeholder="e.g., JPM Ganesh">
+                    </div>
+                    <div>
+                        <label>Quantity:</label>
+                        <input type="text" id="quantity_${tradeCounter}" placeholder="e.g., 100">
+                    </div>
+                    <div>
+                        <label>Code:</label>
+                        <input type="text" id="code_${tradeCounter}" placeholder="e.g., 207">
+                    </div>
+                    <div>
+                        <label>Side:</label>
+                        <select id="side_${tradeCounter}">
+                            <option value="BUYER">BUYER</option>
+                            <option value="SELLER">SELLER</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Notes:</label>
+                        <input type="text" id="notes_${tradeCounter}" placeholder="Optional notes">
+                    </div>
+                    <div>
+                        <button onclick="removeTradeEntry(${tradeCounter})" style="background: #dc3545;">Remove</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(entry);
+        }
+
+        function removeTradeEntry(id) {
+            const entry = document.querySelector(`#trader_${id}`).closest('.trade-entry');
+            entry.remove();
+        }
+
+        function generateOutput() {
+            const contract = document.getElementById('contract').value;
+            const strike1 = document.getElementById('strike1').value;
+            const strike2 = document.getElementById('strike2').value;
+            const optionType = document.getElementById('optionType').value;
+            const strategy = document.getElementById('strategy').value.toLowerCase();
+            const baseQuantity = parseInt(document.getElementById('baseQuantity').value) || 100;
+            const premium1 = document.getElementById('premium1').value;
+            const premium2 = document.getElementById('premium2').value;
+
+            console.log('Starting generateOutput...');
+            console.log('Contract:', contract, 'Strike1:', strike1, 'Premium1:', premium1);
+
+            if (!contract || !strike1 || !premium1) {
+                alert('Please fill in at least Contract, Strike 1, and Premium 1');
+                return;
+            }
+
+            let output = '';
+
+            // Get all trade entries
+            const tradeEntries = document.querySelectorAll('.trade-entry');
+            console.log('Found trade entries:', tradeEntries.length);
+
+            tradeEntries.forEach((entry, index) => {
+                console.log('Processing entry', index);
+
+                // Find the trader input in this entry
+                const traderInput = entry.querySelector('input[id^="trader_"]');
+                if (!traderInput) {
+                    console.log('No trader input found in entry', index);
+                    return;
+                }
+
+                const id = traderInput.id.split('_')[1];
+                const trader = document.getElementById(`trader_${id}`).value;
+                const quantityEl = document.getElementById(`quantity_${id}`);
+                const codeEl = document.getElementById(`code_${id}`);
+                const sideEl = document.getElementById(`side_${id}`);
+                const notesEl = document.getElementById(`notes_${id}`);
+
+                const quantity = quantityEl ? parseInt(quantityEl.value) || 100 : 100;
+                const code = codeEl ? codeEl.value : '';
+                const side = sideEl ? sideEl.value : 'BUYER';
+                const notes = notesEl ? notesEl.value : '';
+
+                console.log('Trade details:', {trader, quantity, code, side, notes});
+
+                if (!trader) {
+                    console.log('No trader name, skipping');
+                    return;
+                }
+
+                output += `${side}: ${trader} ${quantity}x ${code}${notes ? ' ' + notes : ''}\n`;
+                output += `To Confirm: CME Cleared\n`;
+
+                // Generate trade lines based on strategy
+                if (strategy.includes('1x2')) {
+                    // 1x2 call spread - buyer buys 1 lower strike, sells 2 higher strikes
+                    const qty1 = quantity;
+                    const qty2 = quantity * 2;
+
+                    if (side === 'BUYER') {
+                        output += `Buys ${qty1} LN ${contract} ${strike1} ${optionType} for ${premium1}\n`;
+                        output += `Sells ${qty2} LN ${contract} ${strike2} ${optionType} for ${premium2}\n`;
+                    } else {
+                        output += `Sells ${qty1} LN ${contract} ${strike1} ${optionType} for ${premium1}\n`;
+                        output += `Buys ${qty2} LN ${contract} ${strike2} ${optionType} for ${premium2}\n`;
+                    }
+                } else if (strategy.includes('strangle')) {
+                    // Strangle - same quantity for both strikes
+                    if (side === 'BUYER') {
+                        output += `Buys ${quantity} LN ${contract} ${strike1} Put for ${premium1}\n`;
+                        output += `Buys ${quantity} LN ${contract} ${strike2} Call for ${premium2}\n`;
+                    } else {
+                        output += `Sells ${quantity} LN ${contract} ${strike1} Put for ${premium1}\n`;
+                        output += `Sells ${quantity} LN ${contract} ${strike2} Call for ${premium2}\n`;
+                    }
+                } else if (strategy.includes('fly') || strategy.includes('butterfly')) {
+                    // Butterfly - buy wings, sell body (2x middle strike)
+                    if (side === 'BUYER') {
+                        output += `Buys ${quantity} LN ${contract} ${strike1} ${optionType} for ${premium1}\n`;
+                        output += `Sells ${quantity * 2} LN ${contract} ${strike2} ${optionType} for ${premium2}\n`;
+                    } else {
+                        output += `Sells ${quantity} LN ${contract} ${strike1} ${optionType} for ${premium1}\n`;
+                        output += `Buys ${quantity * 2} LN ${contract} ${strike2} ${optionType} for ${premium2}\n`;
+                    }
+                } else if (strategy.includes('ps') || strategy.includes('put spread')) {
+                    // Put spread
+                    if (side === 'BUYER') {
+                        output += `Buys ${quantity} LN ${contract} ${strike1} Put for ${premium1}\n`;
+                        output += `Sells ${quantity} LN ${contract} ${strike2} Put for ${premium2}\n`;
+                    } else {
+                        output += `Sells ${quantity} LN ${contract} ${strike1} Put for ${premium1}\n`;
+                        output += `Buys ${quantity} LN ${contract} ${strike2} Put for ${premium2}\n`;
+                    }
+                } else {
+                    // Default: simple spread or single leg
+                    if (side === 'BUYER') {
+                        output += `Buys ${quantity} LN ${contract} ${strike1} ${optionType} for ${premium1}\n`;
+                        if (strike2 && premium2) {
+                            output += `Sells ${quantity} LN ${contract} ${strike2} ${optionType} for ${premium2}\n`;
+                        }
+                    } else {
+                        output += `Sells ${quantity} LN ${contract} ${strike1} ${optionType} for ${premium1}\n`;
+                        if (strike2 && premium2) {
+                            output += `Buys ${quantity} LN ${contract} ${strike2} ${optionType} for ${premium2}\n`;
+                        }
+                    }
+                }
+
+                output += '\n';
+            });
+
+            console.log('Generated output:', output);
+            document.getElementById('output').value = output;
+            document.getElementById('outputSection').style.display = 'block';
+        }
+
+        function copyOutput() {
+            const output = document.getElementById('output').value;
+            navigator.clipboard.writeText(output).then(() => {
+                alert('Output copied to clipboard!');
+            });
+        }
+
+        function saveOutput() {
+            const output = document.getElementById('output').value;
+            // You can add additional save logic here if needed
+            alert('Changes saved! You can now copy the edited version.');
+        }
+
+        function clearOutput() {
+            document.getElementById('output').value = '';
+        }
+
+        // Example usage
+        document.getElementById('headerInput').value = 'X25 5.00/6.00 1x2 cs LIVE TRADES .0380 (500x)';
+    </script>
+</body>
+</html>

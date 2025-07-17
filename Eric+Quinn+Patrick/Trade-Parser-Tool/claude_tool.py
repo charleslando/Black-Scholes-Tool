@@ -3,7 +3,7 @@ from tkinter import ttk, scrolledtext, messagebox
 import re
 from dataclasses import dataclass
 from typing import List, Optional
-import pyperclip  # pip install pyperclip
+import pyperclip
 
 
 @dataclass
@@ -342,8 +342,7 @@ Quantity: {f"{trade.quantity:,}x" if trade.quantity else 'Not specified'}
 
 
 if __name__ == "__main__":
-    # Optional: Install pyperclip for clipboard functionality
-    # pip install pyperclip
+
 
     app = TradeParser()
     app.run()
