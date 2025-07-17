@@ -26,11 +26,9 @@ def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta
     Calculate the scenario based on the given parameters.
     """
     if option_type == 'call':
-        price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta,
-                                                               market_delta=market_delta)
+        price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
     else:
-        price, delta, gamma, theta, vega = calculate_put_data(F, K, T, r, sigma, vol_delta=vol_delta,
-                                                              market_delta=market_delta)
+        price, delta, gamma, theta, vega = calculate_put_data(F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
     premium = price * quantity
     delta = delta * quantity
     gamma = gamma * quantity
@@ -136,7 +134,7 @@ app.layout = [
                   type='number',
                   value=DEFAULT_FORWARD_PRICE,
                   min=0,
-                  step=1,
+                  step=.1,
                   placeholder='F (Forward Price)',
                   style={'margin': '5px'}),
 
@@ -145,7 +143,7 @@ app.layout = [
                   type='number',
                   value=DEFAULT_STRIKE_PRICE,
                   min=0,
-                  step=1,
+                  step=.1,
                   placeholder='K (Strike Price)',
                   style={'margin': '5px'}),
 
@@ -254,19 +252,19 @@ def get_vol_from_strike(F, K, T, expiration, option_type, r, volatility_matrix):
 def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_delta, quantity, grid_size,
                  grid_format):
     try:
-        print(f"DEBUG: Inputs - structure: {structure}, F: {F}, K: {K}, r: {r}")
+        #print(f"DEBUG: Inputs - structure: {structure}, F: {F}, K: {K}, r: {r}")
 
         # Check if required inputs are valid
         if not structure or F is None or K is None or r is None:
             print("DEBUG: Missing required inputs")
             return None, None, None, None, go.Figure()
 
-        print("DEBUG: Parsing structure...")
+        #print("DEBUG: Parsing structure...")
         commodity, T, expiration, days_to_expiration = parse_struct(structure)
         delta_volatility_matrix = pd.read_csv('Data/delta_vol_matrix.csv', index_col=0)
         strike_volatility_matrix = pd.read_csv('Data/strike_vol_matrix.csv', index_col=0)
 
-        print(f"DEBUG: Parsed - T: {T}, commodity: {commodity}, expiration: {expiration}")
+        #print(f"DEBUG: Parsed - T: {T}, commodity: {commodity}, expiration: {expiration}")
 
         #get Vol
         if table_type == 'delta_vol':
@@ -277,13 +275,13 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
 
 
         if sigma is None:
-            print("DEBUG: Failed to get volatility")
+            #print("DEBUG: Failed to get volatility")
             return None, None, None, None, go.Figure()
 
-        print("DEBUG: Calculating original portfolio...")
+        #print("DEBUG: Calculating original portfolio...")
         original_portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0, quantity)
         original_premium = original_portfolio.price * quantity
-        print(f"DEBUG: Original premium: {original_premium}")
+        #print(f"DEBUG: Original premium: {original_premium}")
 
         # Create levels based on grid size and format
         if grid_format == 'multiplicative':
@@ -294,12 +292,12 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
             vol_levels = np.linspace(-vol_delta, vol_delta, grid_size)
             market_levels = np.linspace(-market_delta, market_delta, grid_size)
 
-        print(f"DEBUG: Vol levels: {vol_levels}")
-        print(f"DEBUG: Market levels: {market_levels}")
+        #print(f"DEBUG: Vol levels: {vol_levels}")
+        #print(f"DEBUG: Market levels: {market_levels}")
 
         # Calculate scenarios for all combinations
         scenarios.clear()
-        print("DEBUG: Calculating scenarios...")
+        #print("DEBUG: Calculating scenarios...")
         vols = []
         for i, vol_change in enumerate(vol_levels):
             for j, market_change in enumerate(market_levels):
@@ -307,8 +305,8 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
                 portfolio.calculate_p_and_l(original_premium)
                 scenarios[(vol_change, market_change)] = portfolio
                 vols.append(f"VOLATILITY: {sigma + (vol_change / 100)}")  # Store volatility for hover text
-                if i == 0 and j == 0:  # Log first scenario for debugging
-                    print(f"DEBUG: First scenario P&L: {portfolio.p_and_l}")
+                #if i == 0 and j == 0:  # Log first scenario for debugging
+                    #print(f"DEBUG: First scenario P&L: {portfolio.p_and_l}")
         print(f"\n\n{vols}\n\n")
         cell_text = []
         p_and_l_data = []
@@ -325,8 +323,8 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
             cell_text.append(row_text)
             p_and_l_data.append(row_data)
 
-        print(f"DEBUG: P&L data shape: {len(p_and_l_data)}x{len(p_and_l_data[0]) if p_and_l_data else 0}")
-        print(f"DEBUG: Sample P&L values: {p_and_l_data[0][:3] if p_and_l_data else 'None'}")
+        #print(f"DEBUG: P&L data shape: {len(p_and_l_data)}x{len(p_and_l_data[0]) if p_and_l_data else 0}")
+        #print(f"DEBUG: Sample P&L values: {p_and_l_data[0][:3] if p_and_l_data else 'None'}")
 
         # Create labels for x and y axes based on format
         x_labels = []
@@ -381,11 +379,11 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
                 else:
                     y_labels.append(f'Down {abs(vol_change):.1f}%')
 
-        print(f"DEBUG: X labels: {x_labels}")
-        print(f"DEBUG: Y labels: {y_labels}")
+        # print(f"DEBUG: X labels: {x_labels}")
+        # print(f"DEBUG: Y labels: {y_labels}")
 
         # Create a grid of data
-        print("DEBUG: Creating heatmap...")
+        #print("DEBUG: Creating heatmap...")
         fig = go.Figure(data=go.Heatmap(
             z=p_and_l_data,
             text=cell_text,
@@ -405,11 +403,11 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
             yaxis_title="Volatility"
         )
 
-        print("DEBUG: Figure created successfully")
+        #print("DEBUG: Figure created successfully")
         return days_to_expiration, sigma, commodity, expiration, fig
 
     except Exception as e:
-        print(f"DEBUG: Exception occurred: {str(e)}")
+        #print(f"DEBUG: Exception occurred: {str(e)}")
         import traceback
         traceback.print_exc()
         return None, None, None, None, go.Figure()
