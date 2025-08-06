@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from dash import Dash, html, dcc, callback, Output, Input, State
+from dash import Dash, html, dcc, callback, Output, Input
 import plotly.graph_objects as go
 from portfolio import Portfolio
 from black_scholes import calculate_call_data, calculate_put_data
@@ -220,14 +220,41 @@ def get_vol_from_delta(F, K, T, expiration, option_type, r, volatility_matrix):
     delta = portfolio.delta
     new_vol = interpolate_vol_from_delta(volatility_matrix, expiration, delta, option_type)
     new_vol = new_vol / 100  # Convert percentage to decimal
-    # Now we can use the interpolated volatility to create a new portfolio
-    # portfolio2 = calculate_scenario(F, K, T, r, new_vol, option_type, 0, 0)
     sigma = new_vol
     return sigma
 
-def get_vol_from_strike(F, K, T, expiration, option_type, r, volatility_matrix):
-    sigma = interpolate_vol_from_strike(volatility_matrix, expiration, K, option_type)
+def get_vol_from_strike(F, K, T, expiration, option_type, r, volatility_matrix, market_delta=0):
+    """
+    Get volatility based on relative moneyness (strike vs forward) rather than absolute strike.
+
+    Args:
+        F: Current forward price
+        K: Original strike price
+        T: Time to maturity
+        expiration: Expiration date
+        option_type: 'call' or 'put'
+        r: Risk-free rate
+        volatility_matrix: Strike volatility matrix
+        market_delta: Market movement adjustment
+
+    Returns:
+        sigma: Volatility adjusted for relative moneyness
+    """
+    # Adjust forward price based on market delta
+    adjusted_forward = F + market_delta
+
+    # Calculate the relative moneyness (difference between strike and forward)
+    moneyness = K - adjusted_forward
+
+    # Find the equivalent strike in the volatility matrix based on moneyness
+    # Assume the matrix was built with a reference forward of 100
+    reference_forward = 100
+    equivalent_strike = reference_forward + moneyness
+
+    # Get volatility based on the equivalent strike
+    sigma = interpolate_vol_from_strike(volatility_matrix, expiration, equivalent_strike, option_type)
     sigma = sigma / 100  # Convert percentage to decimal
+
     return sigma
 
 
@@ -264,24 +291,25 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
         delta_volatility_matrix = pd.read_csv('Data/delta_vol_matrix.csv', index_col=0)
         strike_volatility_matrix = pd.read_csv('Data/strike_vol_matrix.csv', index_col=0)
 
-        #print(f"DEBUG: Parsed - T: {T}, commodity: {commodity}, expiration: {expiration}")
 
-        #get Vol
+
         if table_type == 'delta_vol':
             # Get volatility based on delta
             sigma = get_vol_from_delta(F, K, T, expiration, option_type, r, delta_volatility_matrix)
         else:
-            sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix)
+            # For strike volatility, we need to calculate it for each scenario
+            # Use the base case (no market movement) to get the initial sigma
+            sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix, market_delta=0)
 
 
         if sigma is None:
             #print("DEBUG: Failed to get volatility")
             return None, None, None, None, go.Figure()
 
-        #print("DEBUG: Calculating original portfolio...")
+
         original_portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0, quantity)
         original_premium = original_portfolio.price * quantity
-        #print(f"DEBUG: Original premium: {original_premium}")
+
 
         # Create levels based on grid size and format
         if grid_format == 'multiplicative':
@@ -292,39 +320,51 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
             vol_levels = np.linspace(-vol_delta, vol_delta, grid_size)
             market_levels = np.linspace(-market_delta, market_delta, grid_size)
 
-        #print(f"DEBUG: Vol levels: {vol_levels}")
-        #print(f"DEBUG: Market levels: {market_levels}")
 
-        # Calculate scenarios for all combinations
         scenarios.clear()
-        #print("DEBUG: Calculating scenarios...")
+        print("DEBUG: Calculating scenarios...")
         vols = []
         for i, vol_change in enumerate(vol_levels):
             for j, market_change in enumerate(market_levels):
-                portfolio = calculate_scenario(F, K, T, r, sigma, option_type, vol_change, market_change, quantity)
+                if table_type == 'strike_vol':
+                    # For strike volatility, recalculate sigma for each market scenario
+                    scenario_sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix,
+                                                         market_delta=market_change)
+                    portfolio = calculate_scenario(F, K, T, r, scenario_sigma, option_type, vol_change, market_change,
+                                                   quantity)
+                else:
+                    # For delta volatility, use the original approach
+                    portfolio = calculate_scenario(F, K, T, r, sigma, option_type, vol_change, market_change, quantity)
+
                 portfolio.calculate_p_and_l(original_premium)
                 scenarios[(vol_change, market_change)] = portfolio
-                vols.append(f"VOLATILITY: {sigma + (vol_change / 100)}")  # Store volatility for hover text
-                #if i == 0 and j == 0:  # Log first scenario for debugging
-                    #print(f"DEBUG: First scenario P&L: {portfolio.p_and_l}")
+
+                if table_type == 'strike_vol':
+                    vols.append(f"VOLATILITY: {scenario_sigma + (vol_change / 100)}")
+                else:
+                    vols.append(f"VOLATILITY: {sigma + (vol_change / 100)}")
+
         print(f"\n\n{vols}\n\n")
+
+
+
         cell_text = []
         p_and_l_data = []
 
         # Create cell text for the heatmap using Portfolio objects
-        for vol_change in vol_levels:
+        for i, vol_change in enumerate(vol_levels):
             row_text = []
             row_data = []
-            #volatilities = []
-            for market_change in market_levels:
+            for j, market_change in enumerate(market_levels):
                 portfolio = scenarios[(vol_change, market_change)]
-                row_text.append(portfolio.to_plotly_format())
+                vol = vols[(i*len(vol_levels)) + (j)]
+                row_text.append(f"{portfolio.to_plotly_format()}<br>{vol}")
                 row_data.append(portfolio.p_and_l)
+
             cell_text.append(row_text)
+
             p_and_l_data.append(row_data)
 
-        #print(f"DEBUG: P&L data shape: {len(p_and_l_data)}x{len(p_and_l_data[0]) if p_and_l_data else 0}")
-        #print(f"DEBUG: Sample P&L values: {p_and_l_data[0][:3] if p_and_l_data else 'None'}")
 
         # Create labels for x and y axes based on format
         x_labels = []
@@ -378,9 +418,6 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
                     y_labels.append(f'Up {vol_change:.1f}%')
                 else:
                     y_labels.append(f'Down {abs(vol_change):.1f}%')
-
-        # print(f"DEBUG: X labels: {x_labels}")
-        # print(f"DEBUG: Y labels: {y_labels}")
 
         # Create a grid of data
         #print("DEBUG: Creating heatmap...")
