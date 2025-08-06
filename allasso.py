@@ -20,7 +20,8 @@ def get_allasso_data():
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Now you can make the request without the warning
-        response = requests.get(url, verify='/etc/ssl/certs/ca-certificates.crt')
+        #response = requests.get(url, verify='/etc/ssl/certs/ca-certificates.crt')
+        response = requests.get(url, headers=headers, verify=False)
         #print(response.content)
         response.raise_for_status()  # Raise an error for bad responses
         data = response.json()
@@ -32,7 +33,7 @@ def get_allasso_data():
 
 data = get_allasso_data()
 
-
+print(data)
 
 
 
