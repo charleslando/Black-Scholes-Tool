@@ -38,7 +38,8 @@ def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta
     portfolio.calculate_p_and_l(price * quantity)
     return portfolio
 
-app = Dash()
+
+app = Dash(__name__)
 server = app.server
 
 app.layout = [
