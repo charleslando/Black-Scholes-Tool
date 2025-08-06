@@ -38,8 +38,9 @@ def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta
     portfolio.calculate_p_and_l(price * quantity)
     return portfolio
 
-
 app = Dash()
+server = app.server
+
 app.layout = [
     html.H1(children='Welcome to the Black-Scholes Tool'),
     html.Div(children='This tool allows you to calculate and visualise Black-Scholes option pricing.'),
