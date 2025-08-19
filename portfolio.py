@@ -34,7 +34,7 @@ class Portfolio:
 
     def to_plotly_format(self):
         #return format_plot_data(self.Premium, self.delta, self.gamma, self.theta, self.vega, self.p_and_l)
-        return f"Average Price: {self.price:.2f}<br>Delta: {self.delta:.4f}<br>Gamma: {self.gamma:.2f}<br>Vega: {self.vega:.2f}<br>Theta: {self.theta:.2f}<br>Total Premium: {self.premium:.2f}<br>P&L: {self.p_and_l:.2f}"
+        return f"Average Price: {self.price:.2f}<br>Delta: {self.delta:,.4f}<br>Gamma: {self.gamma:,.2f}<br>Vega: {self.vega:,.2f}<br>Theta: {self.theta:,.2f}<br>Total Premium: {self.premium:,.2f}<br>P&L: {self.p_and_l:,.2f}"
         # for variable in printing_variables:
         #     if variable not in self.to_dict():
         #         raise ValueError(f"Variable '{variable}' not found in Portfolio object.")

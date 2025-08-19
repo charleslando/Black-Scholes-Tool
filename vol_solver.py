@@ -47,21 +47,21 @@ def get_days_to_maturity(expiry):
     delta = datetime_object - datetime.now()
     return delta.days
 
-def interpolate_vol_from_delta(df, expiration, delta, option_type):
-    # Insert out of bounds deltas by adding weighted values
-    if(option_type != 'call' and delta < 1):
-        delta = 1 + delta
-
-
-    x_vals = call_delta_map.values() if option_type.lower() == 'call' else put_delta_map.values()
-    y_vals = df.loc[expiration].tolist()
-    x_vals = list(x_vals)
-
-    # get delta prediction based on x and Y
-    poly = np.poly1d(np.polyfit(x_vals, y_vals, deg=4))
-
-    vol_prediction = poly(delta)
-    return vol_prediction
+# def interpolate_vol_from_delta(df, expiration, delta, option_type):
+#     # Insert out of bounds deltas by adding weighted values
+#     if(option_type != 'call' and delta < 1):
+#         delta = 1 + delta
+#
+#
+#     x_vals = call_delta_map.values() if option_type.lower() == 'call' else put_delta_map.values()
+#     y_vals = df.loc[expiration].tolist()
+#     x_vals = list(x_vals)
+#
+#     # get delta prediction based on x and Y
+#     poly = np.poly1d(np.polyfit(x_vals, y_vals, deg=4))
+#
+#     vol_prediction = poly(delta)
+#     return vol_prediction
 
 def interpolate_vol_from_strike(df, expiration, strike, option_type):
     x_vals = df.columns.tolist()
@@ -233,72 +233,3 @@ def interpolate_vol_from_strike(df, expiration, strike, option_type):
     #         interpolated_vol = vol1 + weight * (vol2 - vol1)
     #         return interpolated_vol
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-# constants for the Black-Scholes model
-
-
-expiry = 'Jul-26'
-
-F = 100
-K = 160
-T = get_days_to_maturity(expiry) / 365.0  # Convert days to years
-r = 0.05
-option_type = 'call'
-month = expiry[:-3]
-sigma = get_atm_volatility(vol_matrix, month)  # Volatility from the matrix
-sigma = sigma / 100  # Convert percentage to decimal
-portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0,0)
-
-print(f"Portfolio Details:\n{portfolio.__str__()}")
-
-delta = portfolio.delta
-
-# col_idx = find_closest_col_idx(vol_matrix, delta, option_type)
-
-print(f"Delta: {delta}\n")
-
-new_vol = interpolate_vol(vol_matrix, month, delta, option_type)
-new_vol = new_vol / 100  # Convert percentage to decimal
-print(f"Interpolated Volatility: {new_vol}\n")
-
-# Now we can use the interpolated volatility to create a new portfolio
-portfolio2 = calculate_scenario(F, K, T, r, new_vol, option_type, 0, 0)
-print(f"Portfolio Details with adjusted volatility:\n{portfolio2.__str__()}\n")
-
-print(f"\n\nFINAL PRICE: {portfolio2.price}\n")
-
-
-#stick 80 in model, using atm vol
-# okay this 80 call is 15 delta
-
-
-#okay now i know what volatility to use for 15 delta
-#use that to price it and then i get price
-"""

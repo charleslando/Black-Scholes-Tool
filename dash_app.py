@@ -5,23 +5,23 @@ import plotly.graph_objects as go
 from portfolio import Portfolio
 from black_scholes import calculate_call_data, calculate_put_data
 from trade_parser import parse_structure
-from vol_solver import interpolate_vol_from_delta, get_atm_volatility, interpolate_vol_from_strike
+from vol_solver import get_atm_volatility, interpolate_vol_from_strike #, interpolate_vol_from_delta
 
 
 # Constants
-DEFAULT_FORWARD_PRICE = 100
-DEFAULT_STRIKE_PRICE = 100
+DEFAULT_FORWARD_PRICE = 65.5
+DEFAULT_STRIKE_PRICE = 65.5
 DEFAULT_TIME_TO_MATURITY = 1
 DEFAULT_RISK_FREE_RATE = 0.05
 DEFAULT_VOLATILITY = 0.35
 DEFAULT_VOL_DELTA = 5
-DEFAULT_MARKET_DELTA = 5
+DEFAULT_MARKET_DELTA = 10
 DEFAULT_QUANTITY = 1000
-HEATMAP_HEIGHT = '80vh'
+HEATMAP_HEIGHT = '100vh'
 
 scenarios = {}
 
-def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta=0, quantity=1):
+def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta=0, quantity=1000):
     """
     Calculate the scenario based on the given parameters.
     """
@@ -29,13 +29,17 @@ def calculate_scenario(F, K, T, r, sigma, option_type, vol_delta=0, market_delta
         price, delta, gamma, theta, vega = calculate_call_data(F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
     else:
         price, delta, gamma, theta, vega = calculate_put_data(F, K, T, r, sigma, vol_delta=vol_delta, market_delta=market_delta)
-    premium = price * quantity
+
     delta = delta * quantity
     gamma = gamma * quantity
     theta = theta * quantity
-    vega = vega * quantity
+    vega = vega * quantity * 10
+
+    BARREL_QUANTITY = quantity * 1000
+    premium = price * BARREL_QUANTITY
+
     portfolio = Portfolio(price, delta, gamma, theta, vega, premium)
-    portfolio.calculate_p_and_l(price * quantity)
+    portfolio.calculate_p_and_l(price * BARREL_QUANTITY)
     return portfolio
 
 
@@ -66,7 +70,7 @@ app.layout = [
         dcc.RadioItems(
             id='grid-format',
             options=[
-                {'label': 'Multiplicative (e.g., -2x, -1x, 0, +1x, +2x)', 'value': 'multiplicative'},
+                # {'label': 'Multiplicative (e.g., -2x, -1x, 0, +1x, +2x)', 'value': 'multiplicative'},
                 {'label': 'Linspace (evenly spaced between bounds)', 'value': 'linspace'}
             ],
             value='linspace',
@@ -79,10 +83,10 @@ app.layout = [
         dcc.RadioItems(
             id='table-type',
             options=[
-                {'label': 'Delta/Vol Table', 'value': 'delta_vol'},
+                # {'label': 'Delta/Vol Table', 'value': 'delta_vol'},
                 {'label': 'Strike/Vol Table', 'value': 'strike_vol'}
             ],
-            value='delta_vol',
+            value='strike_vol',
             style={'margin': '10px'}
         ),
     ]),
@@ -109,17 +113,10 @@ app.layout = [
         style={'margin': '20px'}
     ),
 
-    html.Label("Contracts"),
-    dcc.Input(
-        id='quantity',
-        type='number',
-        value=1000,
-        min=1,
-        step=1),
 
-    html.Button('Calculate', id='calculate-button', style={'margin': '10px', 'padding': '10px 20px',
-                                                           'backgroundColor': '#4CAF50'}),
-    dcc.RadioItems(options=['put', 'call'], value='call', id='option-type'),
+    # html.Button('Calculate', id='calculate-button', style={'margin': '10px', 'padding': '10px 20px',
+    #                                                        'backgroundColor': '#4CAF50'}),
+    dcc.RadioItems(options=['put', 'call', 'put spread', 'call spread'], value='call', id='option-type'),
 
     html.Hr(),
 
@@ -149,17 +146,84 @@ app.layout = [
                   placeholder='K (Strike Price)',
                   style={'margin': '5px'}),
 
-        html.Label('r (Risk-Free Rate)',
-                   style={'margin': '5px'}),
-        dcc.Input(id='input-r',
-                  type='number',
-                  value=DEFAULT_RISK_FREE_RATE,
-                  min=0,
-                  step=0.01,
-                  placeholder='r (Risk-Free Rate)',
-                  style={'margin': '5px'}),
+        html.Label("Contracts"),
+        dcc.Input(
+            id='quantity',
+            type='number',
+            value=1000,
+            min=1,
+            step=1),
 
-    ], style={'display': 'flex', 'flexDirection': 'column'}),  # Flexbox for horizontal layout
+
+
+    ], style={'display': 'flex', 'flexDirection': 'column'}),# Flexbox for horizontal layout
+
+
+
+
+    # html.Div(id='spread-inputs', children=[
+    #     html.Div([
+    #         html.Label("Leg 1 (Strike 1)"),
+    #         html.Div([
+    #             dcc.Dropdown(
+    #                 id='leg1-action',
+    #                 options=[
+    #                     {'label': 'Buy', 'value': 1},
+    #                     {'label': 'Sell', 'value': -1}
+    #                 ],
+    #                 value=1,
+    #                 style={'width': '80px', 'margin': '5px'}
+    #             ),
+    #             dcc.Input(
+    #                 id='input-K',
+    #                 type='number',
+    #                 value=DEFAULT_STRIKE_PRICE,
+    #                 min=0,
+    #                 step=0.1,
+    #                 style={'margin': '5px', 'width': '100px'}
+    #             ),
+    #             dcc.Input(
+    #                 id='quantity',
+    #                 type='number',
+    #                 value=1000,
+    #                 min=1,
+    #                 step=1,
+    #                 style={'margin': '5px', 'width': '100px'}
+    #             ),
+    #         ], style={'display': 'flex', 'alignItems': 'center'})
+    #     ]),
+    #
+    #     html.Div([
+    #         html.Label("Leg 2 (Strike 2)"),
+    #         html.Div([
+    #             dcc.Dropdown(
+    #                 id='leg2-action',
+    #                 options=[
+    #                     {'label': 'Buy', 'value': 1},
+    #                     {'label': 'Sell', 'value': -1}
+    #                 ],
+    #                 value=-1,
+    #                 style={'width': '80px', 'margin': '5px'}
+    #             ),
+    #             dcc.Input(
+    #                 id='input-K2',
+    #                 type='number',
+    #                 value=DEFAULT_STRIKE_PRICE + 5,
+    #                 min=0,
+    #                 step=0.1,
+    #                 style={'margin': '5px', 'width': '100px'}
+    #             ),
+    #             dcc.Input(
+    #                 id='quantity2',
+    #                 type='number',
+    #                 value=1000,
+    #                 min=1,
+    #                 step=1,
+    #                 style={'margin': '5px', 'width': '100px'}
+    #             ),
+    #         ], style={'display': 'flex', 'alignItems': 'center'})
+    #     ])
+    # ], style={'display': 'none'}),
 
     html.Hr(),
 
@@ -171,6 +235,16 @@ app.layout = [
               # step=0.01,
               placeholder='T (Time to Maturity)',
               disabled=True,
+              style={'margin': '5px'}),
+    html.Label('r (Risk-Free Rate)',
+               style={'margin': '5px'}),
+    dcc.Input(id='input-r',
+              type='number',
+              value=DEFAULT_RISK_FREE_RATE,
+              min=0,
+              step=0.01,
+              disabled=True,
+              placeholder='r (Risk-Free Rate)',
               style={'margin': '5px'}),
     html.Label('σ (Volatility)',
                style={'margin': '5px'}),
@@ -214,16 +288,16 @@ def parse_struct(structure):
     return commodity, T, expiration, days_to_expiration
 
 
-def get_vol_from_delta(F, K, T, expiration, option_type, r, volatility_matrix):
-    sigma = get_atm_volatility(volatility_matrix, expiration)  # Volatility from the matrix
-    sigma = sigma / 100  # Convert percentage to decimal
-    print(f"DEBUG: Initial sigma from matrix: {sigma}")
-    portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0)
-    delta = portfolio.delta
-    new_vol = interpolate_vol_from_delta(volatility_matrix, expiration, delta, option_type)
-    new_vol = new_vol / 100  # Convert percentage to decimal
-    sigma = new_vol
-    return sigma
+# def get_vol_from_delta(F, K, T, expiration, option_type, r, volatility_matrix):
+#     sigma = get_atm_volatility(volatility_matrix, expiration)  # Volatility from the matrix
+#     sigma = sigma / 100  # Convert percentage to decimal
+#     print(f"DEBUG: Initial sigma from matrix: {sigma}")
+#     portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0)
+#     delta = portfolio.delta
+#     new_vol = interpolate_vol_from_delta(volatility_matrix, expiration, delta, option_type)
+#     new_vol = new_vol / 100  # Convert percentage to decimal
+#     sigma = new_vol
+#     return sigma
 
 def get_vol_from_strike(F, K, T, expiration, option_type, r, volatility_matrix, market_delta=0):
     """
@@ -249,8 +323,8 @@ def get_vol_from_strike(F, K, T, expiration, option_type, r, volatility_matrix, 
     moneyness = K - adjusted_forward
 
     # Find the equivalent strike in the volatility matrix based on moneyness
-    # Assume the matrix was built with a reference forward of 100
-    reference_forward = 100
+    reference_forward = F
+    # print(f'\n\n{reference_forward}\n\n')
     equivalent_strike = reference_forward + moneyness
 
     # Get volatility based on the equivalent strike
@@ -259,6 +333,17 @@ def get_vol_from_strike(F, K, T, expiration, option_type, r, volatility_matrix, 
 
     return sigma
 
+#
+# @callback(
+#     Output('spread-inputs', 'style'),
+#     Output('single-leg-inputs', 'style'),  # Add this output
+#     Input('option-type', 'value')
+# )
+# def toggle_inputs(option_type):
+#     if option_type in ['put spread', 'call spread']:
+#         return {'display': 'block'}, {'display': 'none'}
+#     else:
+#         return {'display': 'none'}, {'display': 'block'}
 
 @callback(
     Output('input-T', 'value'),
@@ -290,18 +375,22 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
 
         #print("DEBUG: Parsing structure...")
         commodity, T, expiration, days_to_expiration = parse_struct(structure)
-        delta_volatility_matrix = pd.read_csv('Data/delta_vol_matrix.csv', index_col=0)
+        #delta_volatility_matrix = pd.read_csv('Data/delta_vol_matrix.csv', index_col=0)
         strike_volatility_matrix = pd.read_csv('Data/strike_vol_matrix.csv', index_col=0)
 
 
 
-        if table_type == 'delta_vol':
-            # Get volatility based on delta
-            sigma = get_vol_from_delta(F, K, T, expiration, option_type, r, delta_volatility_matrix)
-        else:
-            # For strike volatility, we need to calculate it for each scenario
-            # Use the base case (no market movement) to get the initial sigma
-            sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix, market_delta=0)
+        # if table_type == 'delta_vol':
+        #     # Get volatility based on delta
+        #     sigma = get_vol_from_delta(F, K, T, expiration, option_type, r, delta_volatility_matrix)
+        # else:
+        #     # For strike volatility, we need to calculate it for each scenario
+        #     # Use the base case (no market movement) to get the initial sigma
+        #     sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix, market_delta=0)
+
+
+        sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix, market_delta=0)
+        barrel_quantity = quantity * 1000
 
 
         if sigma is None:
@@ -310,17 +399,20 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
 
 
         original_portfolio = calculate_scenario(F, K, T, r, sigma, option_type, 0, 0, quantity)
-        original_premium = original_portfolio.price * quantity
+        original_premium = original_portfolio.premium
 
 
-        # Create levels based on grid size and format
-        if grid_format == 'multiplicative':
-            half_size = grid_size // 2
-            vol_levels = [i * vol_delta for i in range(-half_size, half_size + 1)]
-            market_levels = [i * market_delta for i in range(-half_size, half_size + 1)]
-        else:
-            vol_levels = np.linspace(-vol_delta, vol_delta, grid_size)
-            market_levels = np.linspace(-market_delta, market_delta, grid_size)
+        # # Create levels based on grid size and format
+        # if grid_format == 'multiplicative':
+        #     half_size = grid_size // 2
+        #     vol_levels = [i * vol_delta for i in range(-half_size, half_size + 1)]
+        #     market_levels = [i * market_delta for i in range(-half_size, half_size + 1)]
+        # else:
+        #     vol_levels = np.linspace(-vol_delta, vol_delta, grid_size)
+        #     market_levels = np.linspace(-market_delta, market_delta, grid_size)
+
+        vol_levels = np.linspace(-vol_delta, vol_delta, grid_size)
+        market_levels = np.linspace(-market_delta, market_delta, grid_size)
 
 
         scenarios.clear()
@@ -328,25 +420,29 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
         vols = []
         for i, vol_change in enumerate(vol_levels):
             for j, market_change in enumerate(market_levels):
-                if table_type == 'strike_vol':
-                    # For strike volatility, recalculate sigma for each market scenario
-                    scenario_sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix,
-                                                         market_delta=market_change)
-                    portfolio = calculate_scenario(F, K, T, r, scenario_sigma, option_type, vol_change, market_change,
-                                                   quantity)
-                else:
-                    # For delta volatility, use the original approach
-                    portfolio = calculate_scenario(F, K, T, r, sigma, option_type, vol_change, market_change, quantity)
+
+                scenario_sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix, market_delta=market_change)
+                portfolio = calculate_scenario(F, K, T, r, scenario_sigma, option_type, vol_change, market_change, quantity)
+
+                # if table_type == 'strike_vol':
+                #     # For strike volatility, recalculate sigma for each market scenario
+                #     scenario_sigma = get_vol_from_strike(F, K, T, expiration, option_type, r, strike_volatility_matrix, market_delta=market_change)
+                #     portfolio = calculate_scenario(F, K, T, r, scenario_sigma, option_type, vol_change, market_change, quantity)
+                # else:
+                #     # For delta volatility, use the original approach
+                #     portfolio = calculate_scenario(F, K, T, r, sigma, option_type, vol_change, market_change, quantity)
 
                 portfolio.calculate_p_and_l(original_premium)
                 scenarios[(vol_change, market_change)] = portfolio
 
-                if table_type == 'strike_vol':
-                    vols.append(f"VOLATILITY: {scenario_sigma + (vol_change / 100)}")
-                else:
-                    vols.append(f"VOLATILITY: {sigma + (vol_change / 100)}")
+                # if table_type == 'strike_vol':
+                #     vols.append(f"VOLATILITY: {scenario_sigma + (vol_change / 100)}")
+                # else:
+                #     vols.append(f"VOLATILITY: {sigma + (vol_change / 100)}")
+                vols.append(f"VOLATILITY: {(scenario_sigma + (vol_change/100)):.4f}")
+                print(f"DEBUG: VOLATILITY: {scenario_sigma + (vol_change/100)}")
 
-        print(f"\n\n{vols}\n\n")
+        # print(f"\n\n{vols}\n\n")
 
 
 
@@ -372,54 +468,55 @@ def update_graph(table_type, structure, F, K, r, option_type, vol_delta, market_
         x_labels = []
         y_labels = []
 
-        if grid_format == 'multiplicative':
-            for market_change in market_levels:
-                if market_change == 0:
-                    x_labels.append('Same')
-                elif market_change > 0:
-                    if market_change == market_delta:
-                        x_labels.append(f'Up ${market_delta}')
-                    else:
-                        multiplier = int(market_change / market_delta)
-                        x_labels.append(f'Up ${multiplier}x{market_delta}')
-                else:
-                    if abs(market_change) == market_delta:
-                        x_labels.append(f'Down ${market_delta}')
-                    else:
-                        multiplier = int(abs(market_change) / market_delta)
-                        x_labels.append(f'Down ${multiplier}x{market_delta}')
+        # if grid_format == 'multiplicative':
+        #     for market_change in market_levels:
+        #         if market_change == 0:
+        #             x_labels.append('Same')
+        #         elif market_change > 0:
+        #             if market_change == market_delta:
+        #                 x_labels.append(f'Up ${market_delta}')
+        #             else:
+        #                 multiplier = int(market_change / market_delta)
+        #                 x_labels.append(f'Up ${multiplier}x{market_delta}')
+        #         else:
+        #             if abs(market_change) == market_delta:
+        #                 x_labels.append(f'Down ${market_delta}')
+        #             else:
+        #                 multiplier = int(abs(market_change) / market_delta)
+        #                 x_labels.append(f'Down ${multiplier}x{market_delta}')
+        #
+        #     for vol_change in vol_levels:
+        #         if vol_change == 0:
+        #             y_labels.append('Same')
+        #         elif vol_change > 0:
+        #             if vol_change == vol_delta:
+        #                 y_labels.append(f'Up {vol_delta}%')
+        #             else:
+        #                 multiplier = int(vol_change / vol_delta)
+        #                 y_labels.append(f'Up {multiplier}x{vol_delta}%')
+        #         else:
+        #             if abs(vol_change) == vol_delta:
+        #                 y_labels.append(f'Down {vol_delta}%')
+        #             else:
+        #                 multiplier = int(abs(vol_change) / vol_delta)
+        #                 y_labels.append(f'Down {multiplier}x{vol_delta}%')
+        # else:
+        for market_change in market_levels:
+            # if abs(market_change) < 0.01:
+            #     x_labels.append('Same')
+            # else: # market_change > 0:
+            #     #x_labels.append(f'Up ${market_change:.1f}')
+                x_labels.append(f'MARKET AT {F + market_change}')
+            # else:
+            #     x_labels.append(f'Down ${abs(market_change):.1f}')
 
-            for vol_change in vol_levels:
-                if vol_change == 0:
-                    y_labels.append('Same')
-                elif vol_change > 0:
-                    if vol_change == vol_delta:
-                        y_labels.append(f'Up {vol_delta}%')
-                    else:
-                        multiplier = int(vol_change / vol_delta)
-                        y_labels.append(f'Up {multiplier}x{vol_delta}%')
-                else:
-                    if abs(vol_change) == vol_delta:
-                        y_labels.append(f'Down {vol_delta}%')
-                    else:
-                        multiplier = int(abs(vol_change) / vol_delta)
-                        y_labels.append(f'Down {multiplier}x{vol_delta}%')
-        else:
-            for market_change in market_levels:
-                if abs(market_change) < 0.01:
-                    x_labels.append('Same')
-                elif market_change > 0:
-                    x_labels.append(f'Up ${market_change:.1f}')
-                else:
-                    x_labels.append(f'Down ${abs(market_change):.1f}')
-
-            for vol_change in vol_levels:
-                if abs(vol_change) < 0.01:
-                    y_labels.append('Same')
-                elif vol_change > 0:
-                    y_labels.append(f'Up {vol_change:.1f}%')
-                else:
-                    y_labels.append(f'Down {abs(vol_change):.1f}%')
+        for vol_change in vol_levels:
+            if abs(vol_change) < 0.01:
+                y_labels.append('Same')
+            elif vol_change > 0:
+                y_labels.append(f'Up {vol_change:.1f}%')
+            else:
+                y_labels.append(f'Down {abs(vol_change):.1f}%')
 
         # Create a grid of data
         #print("DEBUG: Creating heatmap...")
