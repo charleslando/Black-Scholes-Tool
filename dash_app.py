@@ -284,8 +284,8 @@ def create_leg_input_div(leg_id):
 
 
 app.layout = html.Div([
-    html.H1(children='Advanced Black-Scholes Multi-Leg Tool', style={'textAlign': 'center', 'color': '#2c3e50'}),
-    html.Div(children='Create complex option strategies with multiple legs.',
+    html.H1(children='Black-Scholes Pricing Tool', style={'textAlign': 'center', 'color': '#2c3e50'}),
+    html.Div(children='Visualize your portfolio\'s performance depending on market and volatility change',
              style={'textAlign': 'center', 'margin-bottom': '20px'}),
 
     html.Hr(),
