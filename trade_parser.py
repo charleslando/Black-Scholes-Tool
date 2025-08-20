@@ -100,7 +100,7 @@ def parse_structure(structure):
         days_to_expiration = T
         T = T/365.0
 
-        print(f"Commodity: {commodity}, Expiration: {expiration}, T: {T}, Days to Expiration: {days_to_expiration}")
+        #print(f"Commodity: {commodity}, Expiration: {expiration}, T: {T}, Days to Expiration: {days_to_expiration}")
         return commodity, T, expiration, days_to_expiration
     except KeyError as e:
         print(f"Error parsing structure '{structure}': {e}")

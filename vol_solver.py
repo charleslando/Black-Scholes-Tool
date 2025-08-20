@@ -71,7 +71,7 @@ def interpolate_vol_from_strike(df, expiration, strike, option_type):
     x_vals = [float(x) for x in x_vals]
     y_vals = [float(y) for y in y_vals]
 
-    print(f"DEBUG: X VALS ARE {x_vals}, Y VALS ARE {y_vals}")
+    #print(f"DEBUG: X VALS ARE {x_vals}, Y VALS ARE {y_vals}")
 
     poly = np.poly1d(np.polyfit(x_vals, y_vals, deg=4))
     # Ensure strike is a float for interpolation
@@ -83,7 +83,7 @@ def interpolate_vol_from_strike(df, expiration, strike, option_type):
         raise TypeError("Strike must be a float, int, or str convertible to float.")
 
     vol_prediction = poly(strike)
-    print(f"DEBUG: Strike {strike} gives vol prediction {vol_prediction}")
+    #print(f"DEBUG: Strike {strike} gives vol prediction {vol_prediction}")
     return vol_prediction
 
 

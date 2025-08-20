@@ -14,6 +14,7 @@ DEFAULT_RISK_FREE_RATE = 0.05
 DEFAULT_VOL_DELTA = 5
 DEFAULT_MARKET_DELTA = 10
 DEFAULT_QUANTITY = 1000
+CONTRACT_BARRELS = 1000
 HEATMAP_HEIGHT = '100vh'
 
 
@@ -82,7 +83,7 @@ class Leg:
         self.vega = vega * multiplier * 10
 
         # Calculate premium (price * quantity * barrels_per_contract * action)
-        barrel_quantity = self.quantity * 1000
+        barrel_quantity = self.quantity * CONTRACT_BARRELS
         self.premium = price * barrel_quantity * self.action
 
     def get_volatility(self, strike_volatility_matrix, market_delta=0):
@@ -139,17 +140,13 @@ class StrategyPortfolio:
         if not self.legs:
             return None
 
-        LOT_SIZE = 1000.0  # 1 CL option = 1000 barrels (adjust if different)
-
         total_delta = total_gamma = total_theta = total_vega = total_premium = 0.0
-        package_sum = 0.0  # signed sum per base lot
+        portfolio_price = 0.0
 
+        # Calculate Greeks for all legs first
         for leg in self.legs.values():
             vol = leg.get_volatility(strike_volatility_matrix, market_delta)
             leg.calculate_greeks(vol, risk_free_rate, vol_delta, market_delta)
-
-            # action: +1 = sell, -1 = buy
-            package_sum += leg.action * (float(leg.quantity) / LOT_SIZE) * float(leg.price)
 
             total_delta += leg.delta
             total_gamma += leg.gamma
@@ -157,12 +154,23 @@ class StrategyPortfolio:
             total_vega += leg.vega
             total_premium += leg.premium
 
-        portfolio_price = abs(package_sum)  # per base lot (e.g., per 1000 barrels)
+        # For single leg
+        if len(self.legs) == 1:
+            leg = next(iter(self.legs.values()))
+            portfolio_price = leg.price
+        else:
+            # Multi-leg: simple ratio calculation
+            # Find smallest quantity to get base ratio
+            min_qty = min(abs(leg.quantity) for leg in self.legs.values())
 
-        print(f"Portfolio price: {portfolio_price}")
+            for leg in self.legs.values():
+                ratio = abs(leg.quantity) // min_qty
+                portfolio_price += ratio * leg.price * leg.action
+
+            #portfolio_price = abs(portfolio_price)
 
         self.total_portfolio = Portfolio(
-            portfolio_price, total_delta, total_gamma, total_theta, total_vega, abs(total_premium)
+            portfolio_price, total_delta, total_gamma, total_theta, total_vega, total_premium
         )
         return self.total_portfolio
 
@@ -292,7 +300,7 @@ app.layout = html.Div([
                 type='number',
                 value=DEFAULT_FORWARD_PRICE,
                 min=0,
-                step=0.1,
+                step=0.01,
                 style={'margin': '5px', 'width': '100px'}
             ),
 
@@ -579,6 +587,7 @@ def update_heatmap(forward_price, risk_free_rate, grid_size, vol_delta, market_d
 
                     scenarios[(vol_change, market_change)] = portfolio
                     cell_display = f"{portfolio.to_plotly_format()}<br>{vol_text}<br><br>LEG DEBUG:<br>{debug_text}"
+                    #cell_display = f"{portfolio.to_plotly_format()}<br>{vol_text}<br>"
                     row_text.append(cell_display)
                     row_data.append(portfolio.p_and_l)
 
@@ -609,12 +618,13 @@ def update_heatmap(forward_price, risk_free_rate, grid_size, vol_delta, market_d
             texttemplate="%{text}",
             x=x_labels,
             y=y_labels,
-            colorscale='RdYlGn'
+            colorscale='RdYlGn',
+            zmid = 0
         ))
 
         fig.update_layout(
-            title=f'Portfolio Scenario Analysis ({legs_created} legs)',
-            xaxis=dict(fixedrange=True, title="Market"),
+            title=f'Portfolio Scenario Analysis',
+            xaxis=dict(fixedrange=True, title="Market", side='top'),
             yaxis=dict(fixedrange=True, title="Volatility"),
             height=600
         )

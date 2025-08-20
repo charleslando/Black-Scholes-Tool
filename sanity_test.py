@@ -1,11 +1,11 @@
 from black_scholes import calculate_call_data, calculate_put_data, format_data
-F = 65
-K = 65
+F = 75
+K = 57
 T = .189
 r = 0.05
 sigma = .285
 
-original_price, original_delta, original_gamma, original_theta, original_vega = calculate_call_data(F, K, T, r, sigma)
+original_price, original_delta, original_gamma, original_theta, original_vega = calculate_put_data(F, K, T, r, sigma)
 print(format_data(original_price, original_delta, original_gamma, original_theta, original_vega))
 
 # #case: market stays the same and volatility goes up-> price should go up
